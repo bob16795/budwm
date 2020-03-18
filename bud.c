@@ -21,9 +21,9 @@ bud(Monitor *mon) {
 
   for(c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
     nx = mon->wx + gappso;
-    ny = mon->wy + 18 + gappso;
+    ny = mon->wy + gappso;
     nw = mon->ww - gappso;
-    nh = mon->wh - 18 - gappso;
+    nh = mon->wh - gappso;
     if (c->container == 1){
       if (C) nh = 171 - gappsi;
       if (B || D) nw = nw - 450 - gappsi;
