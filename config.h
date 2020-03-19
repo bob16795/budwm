@@ -1,14 +1,17 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
+static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
+static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
+static const unsigned int systrayspacing = 2;   /* systray spacing */
+static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
+static const   int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const int gappsi             = 0;        /* inner gaps */
-static const int gappso             = 0;        /* outer gaps */
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
+static const int gappsi             = 15;       /* inner gaps */
+static const int gappso             = 20;       /* outer gaps */
+static const char *fonts[]          = { "Cascadia Code:size=10" };
 static char normbgcolor[]           = "#222222";
 static char normbordercolor[]       = "#444444";
 static char normfgcolor[]           = "#bbbbbb";
@@ -35,6 +38,7 @@ static const Rule rules[] = {
   { "urxvtB",      NULL,       NULL,       0,            0,           0,           -1,     2},
   { "urxvtC",      NULL,       NULL,       0,            0,           0,           -1,     3},
   { "Sxiv",        NULL,       NULL,       0,            0,           0,           -1,     2},
+  { "cava",        NULL,       NULL,       0,            0,           0,           -1,     2},
   { "cmus",        NULL,       NULL,       0,            0,           0,           -1,     2},
   { "Subl",        NULL,       NULL,       0,            0,           0,           -1,     3},
   { "minecraft-launcher",NULL, NULL,       0,            0,           0,           -1,     3},
@@ -47,14 +51,13 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
-static const int nmaster     = 1;    /* number of clients in master area */
 static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
 
 #include "bud.c"
 static const Layout layouts[] = {
   /* symbol     arrange function */
-  { "[+]",      bud  },    /* no layout function means floating behavior */
+  { "[+]",      bud  },
+  { "-+-",      budnogaps},
 };
 
 /* key definitions */
@@ -72,28 +75,34 @@ static const Layout layouts[] = {
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/bin/xst", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", "-fullscreen", NULL };
 static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "200", "-fullscreen", NULL };
 static const char *termcmd[]  = { "xst", NULL };
+static const char *cavacmd[]  = { "/home/john/scr/launchprog", "cava", "/usr/bin/xst", "-f", "monospace:size=12", "-T", "cava", "-c", "cava", "-e", "cava", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function        argument */
+  { MODKEY|ShiftMask,             XK_h,      setlayout,      {.v = &layouts[0]} },
+  { MODKEY,                       XK_h,      setlayout,      {.v = &layouts[1]} },
   { MODKEY,                       XK_d,      spawn,          {.v = runcmd } },
   { MODKEY|ShiftMask,             XK_d,      spawn,          {.v = druncmd } },
+  { MODKEY,                       XK_v,      spawn,          {.v = cavacmd } },
   { MODKEY,                       XK_Return, spawn,          TERMCMD("urxvtA", "/bin/bash") },
   { MODKEY|ShiftMask,             XK_Return, spawn,          TERMONECMD("urxvtB", "/bin/bash") },
   { MODKEY|ShiftMask,             XK_c,      spawn,          TERMONECMD("urxvtC", "/bin/bash") },
   { MODKEY,                       XK_m,      spawn,          TERMONECMD("cmus", "/usr/bin/cmus") },
+  { MODKEY|ShiftMask,             XK_w,      spawn,          SHCMD("sxiv -b -s h ~/pix/wallpapers/currentwall") },
   { MODKEY,                       XK_w,      spawn,          SHONECMD("qutebrowser", "qutebrowser") },
   { MODKEY,                       XK_c,      spawn,          SHONECMD("doc", "subl") },
   { MODKEY,                       XK_l,      spawn,          SHCMD("linklord -x 'qutebrowser \"%u\"'") },
   { MODKEY|ShiftMask,             XK_l,      spawn,          SHCMD("linklord -d ~/.config/pdflord/pdfs -s ~/.config/pdflord -x 'zathura \"%u\"'") },
   { MODKEY,                       XK_r,      spawn,          TERMONECMD("Files", "/usr/bin/ranger") },
   { MODKEY,                       XK_f,      fullscreen,     {0} },
+  { MODKEY,                       XK_b,      togglebar,      {0} },
   { MODKEY,                       XK_g,      spawn,          SHONECMD("Lutris", "lutris")},
   { MODKEY,                       XK_Tab,    focusstack,     {.i = +1 } },
   { MODKEY,                       XK_q,      killclient,     {0} },
+  { MODKEY|ShiftMask,             XK_q,      killclient,     {0} },
   { MODKEY,                       XK_space,  togglefloating, {0} },
   { MODKEY|ShiftMask,             XK_1,      setcontainer,   {.f = 1 } },
   { MODKEY|ShiftMask,             XK_2,      setcontainer,   {.f = 2 } },
@@ -116,7 +125,7 @@ static Key keys[] = {
   TAGKEYS(                        XK_F2,                      1)
   TAGKEYS(                        XK_F3,                      2)
   TAGKEYS(                        XK_F4,                      3)
-  { MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+  { MODKEY|ShiftMask,             XK_Escape,      quit,           {0} },
 };
 
 /* button definitions */
@@ -130,9 +139,5 @@ static Button buttons[] = {
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
   { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
   { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-  { ClkTagBar,            0,              Button1,        view,           {0} },
-  { ClkTagBar,            0,              Button3,        toggleview,     {0} },
-  { ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
-  { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 };
 
