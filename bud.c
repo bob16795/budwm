@@ -84,8 +84,6 @@ budnogaps(Monitor *mon) {
     }
     if (c->isfullscreen)
       c->isframe = 0;
-    if (!mon->showbar)
-      c->isframe = 1;
   }
   if(n == 0)
     return;
@@ -116,6 +114,8 @@ budnogaps(Monitor *mon) {
       if (B) ny = ny + bdsplit;
       if (!B) c->isframe = 0;
     }
+    if (!mon->showbar)
+      c->isframe = 1;
     resize(c, nx, ny, nw-2 * c->bw, nh-2 * c->bw, False);
   }
 }

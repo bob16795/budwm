@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const char *fonts[]          = { "Delugia Nerd Font:size=10", "FontAwesome5Free:style=Solid:size=10" };
+static const char *fonts[]          = { "FontAwesome5Free:style=Solid:size=10", "Delugia Nerd Font:size=10"};
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
@@ -44,6 +44,7 @@ static const Rule rules[] = {
   { "xstA",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     1},
   { "xstB",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     2},
   { "xstC",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     3},
+  { "htop",        NULL,       NULL,       "Tasks",      0,            0,           0,           -1,     1},
   { "Sxiv",        NULL,       NULL,       "Pix",        0,            0,           0,           -1,     2},
   { "cava",        NULL,       NULL,       "Vis",        0,            0,           0,           -1,     2},
   { "ncmpcpp",     NULL,       NULL,       "Mus",        0,            0,           0,           -1,     2},
@@ -95,6 +96,7 @@ static Key keys[] = {
   { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("xstB", "/bin/bash") },
   { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("xst", "/bin/bash") },
   { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("xstC", "/bin/bash") },
+  { MODKEY,                       XK_i,      spawn,           TERMCMD("htop", "/usr/bin/htop") },
   { MODKEY,                       XK_t,      spawn,           SHCMD("bwpcontrol thememenu") },
   { MODKEY,                       XK_m,      spawn,           TERMCMD("ncmpcpp", "/usr/bin/ncmpcpp") },
   { MODKEY|ShiftMask,             XK_b,      spawn,           SHCMD("sxiv -b -s h ~/pix/wallpapers/currentwall") },
@@ -112,6 +114,7 @@ static Key keys[] = {
   { MODKEY,                       XK_b,      togglebar,       {0} },
   { MODKEY,                       XK_g,      spawn,           SHCMD("lutris")},
   { MODKEY,                       XK_Tab,    focusstack,      {.i = +1 } },
+  { MODKEY|ShiftMask,             XK_Tab,    focusstack,      {.i = -1 } },
   { MODKEY,                       XK_q,      killclient,      {0} },
   { MODKEY|ShiftMask,             XK_q,      killclient,      {0} },
   { MODKEY,                       XK_space,  togglefloating,  {0} },

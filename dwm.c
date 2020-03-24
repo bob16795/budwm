@@ -119,7 +119,7 @@ typedef struct Monitor Monitor;
 typedef struct Client Client;
 struct Client {
   char name[256];
-  unsigned int container;
+  unsigned int container, oldc;
   float mina, maxa;
   int x, y, w, h;
   int oldx, oldy, oldw, oldh;
@@ -991,31 +991,22 @@ void
 focusstack(const Arg *arg)
 {
   Client *c = NULL, *i;
-  unsigned int trg = selmon->sel->container;
-  unsigned int cur = -1;
-  c = selmon->sel;
-  if (c->isfloating)
-    return;
-  if (c->isfullscreen)
-    return;
 
-  while (cur != trg || c->isfloating){
+  if (!selmon->sel)
+    return;
+  int trg = selmon->sel->container;
+  if (arg->i > 0) {
+    for (c = selmon->sel->next; c && !(c->container == trg); c = c->next);
     if (!c)
-      return;
-    if (arg->i > 0) {
-      for (c = c->next; c && !ISVISIBLE(c); c = c->next);
-      if (!c)
-        for (c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
-    } else {
-      for (i = selmon->clients; i != c; i = i->next)
-        if (ISVISIBLE(i))
+      for (c = selmon->clients; c && !(c->container == trg); c = c->next);
+  } else {
+    for (i = selmon->clients; i != selmon->sel; i = i->next)
+      if (c->container == trg)
+        c = i;
+    if (!c)
+      for (; i; i = i->next)
+        if (c->container == trg)
           c = i;
-      if (!c)
-        for (; i; i = i->next)
-          if (ISVISIBLE(i))
-            c = i;
-    }
-    cur = c->container;
   }
   if (c) {
     focus(c);
@@ -2182,9 +2173,14 @@ togglefloating(const Arg *arg)
   if (selmon->sel->isfullscreen) /* no support for fullscreen windows */
     return;
   selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
-  if (selmon->sel->isfloating)
+  if (selmon->sel->isfloating){
     resize(selmon->sel, selmon->sel->x, selmon->sel->y,
       selmon->sel->w, selmon->sel->h, 0);
+    selmon->sel->oldc = selmon->sel->container;
+    selmon->sel->container = 5;
+  } else {
+    selmon->sel->container = selmon->sel->oldc;
+  }
   arrange(selmon);
 }
 
