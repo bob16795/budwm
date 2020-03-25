@@ -108,6 +108,12 @@ typedef union {
 } Arg;
 
 typedef struct {
+  char* icon;
+  char* command;
+  char* action[3];
+} Block;
+
+typedef struct {
   unsigned int click;
   unsigned int mask;
   unsigned int button;
@@ -1707,15 +1713,13 @@ clickbar(const Arg *arg)
       id ++;
     }
   }
-  if (!q){
-    id = -1;
+  if (q){
+    if ((blocks[id].action)[arg->i]) {
+      Arg cmd = {.v = (const char*[]){"/bin/sh", "-c", (blocks[id].action)[arg->i], NULL}};
+      spawn(&cmd);
+    }
   }
-  char str1[11];
-  char str2[11];
-  sprintf(str1, "%d", ev.xbutton.x);
-  sprintf(str2, "%d", id);
-  Arg cmd = {.v = (const char*[]){"echo", str1, str2, NULL}};
-  spawn(&cmd);
+  updatestatus();
 }
 
 void
@@ -2552,8 +2556,32 @@ updatesizehints(Client *c)
 void
 updatestatus(void)
 {
-  if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
-    strcpy(stext, "dwm-"VERSION);
+  const Block* block;
+
+  char statusbar[LENGTH(blocks)][50] = {0};  
+  for(int i = 0; i < LENGTH(blocks); i++)
+  {
+    block = blocks + i;
+    strcpy(statusbar[i], block->icon);
+    char *cmd = block->command;
+    FILE *cmdf = popen(cmd,"r");
+    if (!cmdf)
+      return;
+    char c;
+    int j = strlen(block->icon);
+    while((c = fgetc(cmdf)) != EOF)
+      statusbar[i][j++] = c;
+    if (--j)
+      statusbar[i][j++] = '\xff';
+    statusbar[i][j++] = '\0';
+    pclose(cmdf);
+  }
+  int j = 0;
+  for(int i = 0; i < LENGTH(blocks); j+=strlen(statusbar[i++]))
+  {
+    strcpy(stext + j, statusbar[i]);
+  }
+  stext[--j] = '\0';
   drawbar(selmon);
   updatesystray();
 }

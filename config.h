@@ -12,7 +12,7 @@ static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int gappsi             = 15;       /* inner gaps */
 static const int gappso             = 20;       /* outer gaps */
-static const int frameicons         = 0;        /* show container icons in frame */
+static const int frameicons         = 1;        /* show container icons in frame */
 static int absplit                  = 916;
 static int acsplit                  = 170;
 static int bdsplit                  = 300;
@@ -65,8 +65,9 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 #include "bud.c"
 static const Layout layouts[] = {
   /* symbol     arrange function */
-  { " -+- ",      budnogaps},
-  { " [+] ",      bud  },
+  { " -+- ",    budnogaps},
+  { " [+] ",    bud  },
+  { " [^] ",    NULL  },
   {NULL, NULL}
 };
 
@@ -83,8 +84,8 @@ static const Layout layouts[] = {
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/bin/xst", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", "-fullscreen", NULL };
-static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "200", "-fullscreen", NULL };
+static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", "-monitor", "VGA1", NULL };
+static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "200", "-monitor", "VGA1", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
@@ -151,6 +152,9 @@ static Key keys[] = {
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
   /* click                event mask      button          function        argument */
+  { ClkWinTitle,          0,              Button1,        clickbar,       {0} },
+  { ClkWinTitle,          0,              Button3,        clickbar,       {1} },
+  { ClkWinTitle,          0,              Button2,        clickbar,       {2} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
   { ClkFrameWin,          0,              Button1,        movemouse,      {0} },
   { ClkLtSymbol,          0,              Button1,        cyclelayout,    {.i = +1 } },
@@ -164,5 +168,16 @@ static Button buttons[] = {
 /* trigger signals using `xsetroot -name "fsignal:<signum>"` */
 static Signal signals[] = {
   /* signum       function        argument  */
-  { 1,            xrdb,      {0} },
+  { 1,            xrdb,           {0} },
+  { 2,            updatestatus,   {0} },
+};
+
+static const Block blocks[] = {
+  /*Icon*//*Command*/ 
+  {"",    "music",                      {"mediacontrol prev", "mediacontrol next", "mediacontrol toggle"}},
+  {";",   "date +%-I:%M | sed 's/ //'", {"",                  "",                  ""                   }},
+  {"",    "volume",                     {"pamixer -t", "button 2", "button 3"}},
+  {"",    "disk /home/john ",          {"button 1", "button 2", "button 3"}},
+  {"",    "battery",                    {"button 1", "button 2", "button 3"}},
+  {"",    "cpu",                        {"button 1", "button 2", "button 3"}},
 };
