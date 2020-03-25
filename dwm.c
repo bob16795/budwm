@@ -50,7 +50,7 @@
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
-#define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+#define ISVISIBLE(C)            ((C->tags & C->mon->tagset[seltags]))
 #define LENGTH(X)               (sizeof X / sizeof X[0])
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
@@ -158,7 +158,6 @@ struct Monitor {
   int by;               /* bar geometry */
   int mx, my, mw, mh;   /* screen size */
   int wx, wy, ww, wh;   /* window area  */
-  unsigned int seltags;
   unsigned int sellt;
   unsigned int tagset[2];
   int showbar;
@@ -242,6 +241,7 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
 static void resizebarwin(Monitor *m);
 static void resizeclient(Client *c, int x, int y, int w, int h);
 static void resizemouse(const Arg *arg);
+static void clickbar(const Arg *arg);
 static void resizerequest(XEvent *e);
 static void restack(Monitor *m);
 static void run(void);
@@ -339,6 +339,7 @@ static Drw *drw;
 static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
 static Client * scratchpad_last_showed = NULL;
+static unsigned int seltags;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -386,7 +387,7 @@ applyrules(Client *c)
     XFree(ch.res_class);
   if (ch.res_name)
     XFree(ch.res_name);
-  c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+  c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[seltags];
 }
 
 int
@@ -833,17 +834,21 @@ void
 drawbar(Monitor *m)
 {
   lrpad = 0;
-  int x, w, sw = 0, stw = 0;
+  int x, w, sw = 0, stw = 0, counter = 0;
   char *r, *l;
   char sttext[1024];
 
   if(showsystray && m == systraytomon(m))
     stw = getsystraywidth();
 
-
   drw_setscheme(drw, scheme[SchemeSel]);
   resizebarwin(m);
   strcpy(sttext, stext);
+  while(sttext[counter]) {
+    if(sttext[counter] == '\xff')
+      sttext[counter] = ' ';
+    counter ++;
+  }
   r = strtok(sttext, ";");
   l = strtok(NULL, ";");
   /* draw status first so it can be overdrawn by tags later */
@@ -903,14 +908,16 @@ drawframe(Client* c)
     drw_rect(drw, 0, 0, c->w + 2 * c->bw, bh, 1, 0);
     if (c->isfloating)
       icon = "F";
-    else if (c->container == 1)
-      icon = "A";
-    else if (c->container == 2)
-      icon = "B";
-    else if (c->container == 3)
-      icon = "C";
-    else if (c->container == 4)
-      icon = "D";
+    else
+      icon = "T";
+    //else if (c->container == 1)
+    //  icon = "A";
+    //else if (c->container == 2)
+    //  icon = "B";
+    //else if (c->container == 3)
+    //  icon = "C";
+    //else if (c->container == 4)
+    //  icon = "D";
     drw_text(drw, 0, 0, c->w + 2 * c->bw, bh, 0, c->name, 0);
     if (icon && frameicons){
       drw_text(drw, c->w - TEXTW(icon), 0, TEXTW(icon), bh - 1, 0, icon, 0);
@@ -1645,6 +1652,73 @@ resizemouse(const Arg *arg)
 }
 
 void
+clickbar(const Arg *arg)
+{
+  XEvent ev;
+  int q = 0, counter = 0, id = 0, size = 0;
+  char sttext[1024];
+  char *l, *r, *rb;
+
+  if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+    None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
+    return;
+  do {
+    XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
+    switch(ev.type) {
+    case ConfigureRequest:
+    case Expose:
+    case MapRequest:
+      handler[ev.type](&ev);
+      break;
+  }
+  }while (ev.type != ButtonRelease);
+  XUngrabPointer(dpy, CurrentTime);
+  strcpy(sttext, stext);
+  /* draw status first so it can be overdrawn by tags later */
+  r = strtok(sttext, ";");
+  rb = r;
+  l = strtok(NULL, ";");
+  if (!l){
+    l = r;
+    r = "";
+    rb = "";
+  }
+  char *t = strtok(r, "\xff");
+  size -= TEXTW(t);
+  while(t) {
+    size += TEXTW(t);
+    if ( ev.xbutton.x > (selmon->ww - TEXTW(rb) + size)) {
+      q = 1;
+      break;
+    }
+    t = strtok(NULL, "\xff");
+    id ++;
+  }
+  if (!q) {
+    size = 0;
+    t = strtok(l, "\xff");
+    while(t) {
+      size += TEXTW(t) + TEXTW(" ");
+      if ( ev.xbutton.x < (TEXTW(selmon->ltsymbol) + size)){
+        q = 1;
+        break;
+      }
+      t = strtok(NULL, "\xff");
+      id ++;
+    }
+  }
+  if (!q){
+    id = -1;
+  }
+  char str1[11];
+  char str2[11];
+  sprintf(str1, "%d", ev.xbutton.x);
+  sprintf(str2, "%d", id);
+  Arg cmd = {.v = (const char*[]){"echo", str1, str2, NULL}};
+  spawn(&cmd);
+}
+
+void
 restack(Monitor *m)
 {
   Client *c;
@@ -1781,7 +1855,7 @@ static void scratchpad_show()
 static void scratchpad_show_client(Client * c)
 {
   scratchpad_last_showed = c;
-  c -> tags = selmon->tagset[selmon->seltags];
+  c -> tags = selmon->tagset[seltags];
   focus(c);
   arrange(selmon);
 }
@@ -1808,7 +1882,7 @@ sendmon(Client *c, Monitor *m)
   detach(c);
   detachstack(c);
   c->mon = m;
-  c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+  c->tags = m->tagset[seltags]; /* assign tags of target monitor */
   attach(c);
   attachstack(c);
   focus(NULL);
@@ -2202,10 +2276,10 @@ toggletag(const Arg *arg)
 void
 toggleview(const Arg *arg)
 {
-  unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
+  unsigned int newtagset = selmon->tagset[seltags] ^ (arg->ui & TAGMASK);
 
   if (newtagset) {
-    selmon->tagset[selmon->seltags] = newtagset;
+    selmon->tagset[seltags] = newtagset;
     focus(NULL);
     arrange(selmon);
   }
@@ -2644,13 +2718,14 @@ updatewmhints(Client *c)
 void
 view(const Arg *arg)
 {
-  if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
+  if ((arg->ui & TAGMASK) == selmon->tagset[seltags])
     return;
-  selmon->seltags ^= 1; /* toggle sel tagset */
+  seltags ^= 1; /* toggle sel tagset */
   if (arg->ui & TAGMASK)
-    selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+    selmon->tagset[seltags] = arg->ui & TAGMASK;
   focus(NULL);
-  arrange(selmon);
+  for (Monitor* m = mons; m; m = m->next)
+    arrange(m);
 }
 
 Client *
