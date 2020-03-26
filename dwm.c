@@ -110,7 +110,7 @@ typedef union {
 typedef struct {
   char* icon;
   char* command;
-  char* action[3];
+  //char* action[3];
 } Block;
 
 typedef struct {
@@ -158,6 +158,7 @@ typedef struct {
   void (*arrange)(Monitor *);
 } Layout;
 
+typedef struct Pertag Pertag;
 struct Monitor {
   char ltsymbol[16];
   int num;
@@ -174,6 +175,7 @@ struct Monitor {
   Monitor *next;
   Window barwin;
   const Layout *lt[2];
+  Pertag *pertag;
 };
 
 typedef struct {
@@ -350,6 +352,12 @@ static unsigned int seltags;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
+struct Pertag {
+  unsigned int curtag, prevtag; /* current and previous tag */
+  unsigned int sellts[LENGTH(tags) + 1]; /* selected layouts */
+  const Layout *ltidxs[LENGTH(tags) + 1][2]; /* matrix of tags and layouts indexes  */
+  int showbars[LENGTH(tags) + 1]; /* display bar for the current tag */
+};
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 
@@ -757,7 +765,6 @@ configurerequest(XEvent *e)
     wc.width = ev->width;
     wc.height = ev->height;
     wc.border_width = ev->border_width;
-    wc.sibling = ev->above;
     wc.stack_mode = ev->detail;
     XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
   }
@@ -787,6 +794,7 @@ Monitor *
 createmon(void)
 {
   Monitor *m;
+  unsigned int i;
 
   m = ecalloc(1, sizeof(Monitor));
   m->tagset[0] = m->tagset[1] = 1;
@@ -795,6 +803,17 @@ createmon(void)
   m->lt[0] = &layouts[0];
   m->lt[1] = &layouts[1 % LENGTH(layouts)];
   strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
+  m->pertag = ecalloc(1, sizeof(Pertag));
+  m->pertag->curtag = m->pertag->prevtag = 1;
+
+  for (i = 0; i <= LENGTH(tags); i++) {
+    m->pertag->ltidxs[i][0] = m->lt[0];
+    m->pertag->ltidxs[i][1] = m->lt[1];
+    m->pertag->sellts[i] = m->sellt;
+
+    m->pertag->showbars[i] = m->showbar;
+  }
+
   return m;
 }
 
@@ -850,11 +869,6 @@ drawbar(Monitor *m)
   drw_setscheme(drw, scheme[SchemeSel]);
   resizebarwin(m);
   strcpy(sttext, stext);
-  while(sttext[counter]) {
-    if(sttext[counter] == '\xff')
-      sttext[counter] = ' ';
-    counter ++;
-  }
   r = strtok(sttext, ";");
   l = strtok(NULL, ";");
   /* draw status first so it can be overdrawn by tags later */
@@ -865,9 +879,28 @@ drawbar(Monitor *m)
     w = TEXTW(m->ltsymbol);
     drw_text(drw, 0, 0, w, bh, 0, m->ltsymbol, 0);
     x += w;
-    w = TEXTW(l); /* 2px right padding */
-    drw_text(drw, x, 0, w, bh, 0, l, 0);
-    x += w;
+    char *t ;
+    t = strtok(l, "\xf0");
+    while(t) {
+      if (t[0] == '\xf1')
+        drw_setscheme(drw, scheme[SchemeNorm]);
+      if (x != TEXTW(m->ltsymbol)) {
+        w = TEXTW(" "); /* 2px right padding */
+        drw_text(drw, x, 0, w, bh, 0, " ", 0);
+        x += w;
+      }
+      if (t[0] != '\xf1')
+      drw_setscheme(drw, scheme[SchemeSel]);
+      if (t[0] == '\xf1') {
+        w = TEXTW(&t[1]); /* 2px right padding */
+        drw_text(drw, x, 0, w, bh, 0, &t[1], 0);
+      } else {
+        w = TEXTW(t); /* 2px right padding */
+        drw_text(drw, x, 0, w, bh, 0, t, 0);
+      }
+      x += w;
+      t = strtok(NULL, "\xf0");
+    }
   }else if (r) { /* status is only drawn on selected monitor */
     sw = 0;
     w = TEXTW(m->ltsymbol);
@@ -877,7 +910,6 @@ drawbar(Monitor *m)
     drw_text(drw, x, 0, w, bh, 0, r, 0);
     x += w;
   }
-
   w = m->ww - sw - x - stw;
   if (m->sel) {
     int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
@@ -1689,7 +1721,7 @@ clickbar(const Arg *arg)
     r = "";
     rb = "";
   }
-  char *t = strtok(r, "\xff");
+  char *t = strtok(r, "\xf0");
   size -= TEXTW(t);
   while(t) {
     size += TEXTW(t);
@@ -1697,29 +1729,27 @@ clickbar(const Arg *arg)
       q = 1;
       break;
     }
-    t = strtok(NULL, "\xff");
+    t = strtok(NULL, "\xf0");
     id ++;
   }
-  if (!q) {
+  if (q == 0) {
     size = 0;
-    t = strtok(l, "\xff");
+    t = strtok(l, "\xf0");
     while(t) {
-      size += TEXTW(t) + TEXTW(" ");
-      if ( ev.xbutton.x < (TEXTW(selmon->ltsymbol) + size)){
+      size += TEXTW(t);
+      if ( ev.xbutton.x < (selmon->mx + TEXTW(selmon->ltsymbol) + size)){
         q = 1;
         break;
       }
-      t = strtok(NULL, "\xff");
+      t = strtok(NULL, "\xf0");
       id ++;
     }
   }
-  if (q){
-    if ((blocks[id].action)[arg->i]) {
-      Arg cmd = {.v = (const char*[]){"/bin/sh", "-c", (blocks[id].action)[arg->i], NULL}};
-      spawn(&cmd);
-    }
+  if (q == 1){
+    Arg cmd = {.v = (const char*[]){(blocks[id].command), arg->v, NULL}};
+    spawn(&cmd);
+    updatestatus();
   }
-  updatestatus();
 }
 
 void
@@ -2007,8 +2037,9 @@ void
 setlayout(const Arg *arg)
 {
   if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
-    selmon->sellt ^= 1;
+    selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag] ^= 1;
   if (arg && arg->v)
+    selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] = (Layout *)arg->v;
     selmon->lt[selmon->sellt] = (Layout *)arg->v;
   strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
   if (selmon->sel)
@@ -2226,7 +2257,7 @@ tag(const Arg *arg)
 void
 togglebar(const Arg *arg)
 {
-  selmon->showbar = !selmon->showbar;
+  selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
   updatebarpos(selmon);
   resizebarwin(selmon);
   if (showsystray) {
@@ -2281,9 +2312,31 @@ void
 toggleview(const Arg *arg)
 {
   unsigned int newtagset = selmon->tagset[seltags] ^ (arg->ui & TAGMASK);
+  int i;
 
   if (newtagset) {
     selmon->tagset[seltags] = newtagset;
+
+    if (newtagset == ~0) {
+      selmon->pertag->prevtag = selmon->pertag->curtag;
+      selmon->pertag->curtag = 0;
+    }
+
+    /* test if the user did not select the same tag */
+    if (!(newtagset & 1 << (selmon->pertag->curtag - 1))) {
+      selmon->pertag->prevtag = selmon->pertag->curtag;
+      for (i = 0; !(newtagset & 1 << i); i++) ;
+      selmon->pertag->curtag = i + 1;
+    }
+
+    /* apply settings for this view */
+    selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
+    selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
+    selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
+
+    if (selmon->showbar != selmon->pertag->showbars[selmon->pertag->curtag])
+      togglebar(NULL);
+
     focus(NULL);
     arrange(selmon);
   }
@@ -2572,7 +2625,7 @@ updatestatus(void)
     while((c = fgetc(cmdf)) != EOF)
       statusbar[i][j++] = c;
     if (--j)
-      statusbar[i][j++] = '\xff';
+      statusbar[i][j++] = '\xf0';
     statusbar[i][j++] = '\0';
     pclose(cmdf);
   }
@@ -2746,11 +2799,33 @@ updatewmhints(Client *c)
 void
 view(const Arg *arg)
 {
+  int i;
+  unsigned int tmptag;
   if ((arg->ui & TAGMASK) == selmon->tagset[seltags])
     return;
   seltags ^= 1; /* toggle sel tagset */
-  if (arg->ui & TAGMASK)
+  if (arg->ui & TAGMASK) {
     selmon->tagset[seltags] = arg->ui & TAGMASK;
+    selmon->pertag->prevtag = selmon->pertag->curtag;
+    if (arg->ui == ~0)
+      selmon->pertag->curtag = 0;
+    else {
+      for (i = 0; !(arg->ui & 1 << i); i++) ;
+      selmon->pertag->curtag = i + 1;
+    }
+  } else {
+    tmptag = selmon->pertag->prevtag;
+    selmon->pertag->prevtag = selmon->pertag->curtag;
+    selmon->pertag->curtag = tmptag;
+  }
+
+  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
+  selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
+  selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
+
+  if (selmon->showbar != selmon->pertag->showbars[selmon->pertag->curtag])
+    togglebar(NULL);
+
   focus(NULL);
   for (Monitor* m = mons; m; m = m->next)
     arrange(m);

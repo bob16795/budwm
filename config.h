@@ -49,13 +49,14 @@ static const Rule rules[] = {
   { "cava",        NULL,       NULL,       "Vis",        0,            0,           0,           -1,     2},
   { "ncmpcpp",     NULL,       NULL,       "Mus",        0,            0,           0,           -1,     2},
   { "Subl",        NULL,       NULL,       "Code",       0,            0,           0,           -1,     3},
-  { "minecraft-launcher",NULL, NULL,       "Gam",        0,            0,           0,           -1,     3},
-  { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        0,            0,           0,           -1,     0},
   { "qutebrowser", NULL,       NULL,       "Web",        0,            0,           0,           -1,     3},
   { "Files",       NULL,       NULL,       "Files",      0,            0,           0,           -1,     4},
   { "Lutris",      NULL,       NULL,       "Gam",        0,            0,           0,           -1,     3},
   { "Zathura",     NULL,       NULL,       "PDF",        0,            0,           0,           -1,     3},
   { "Pavucontrol", NULL,       NULL,       "Vol",        0,            0,           0,           -1,     2},
+  { "libreoffice-writer",NULL, NULL,       "Wrd",        0,            0,           0,           -1,     3},
+  { "minecraft-launcher",NULL, NULL,       "Gam",        0,            0,           0,           -1,     3},
+  { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        0,            0,           0,           -1,     0},
   { NULL,          "winword.exe",NULL,     "Wrd",        0,            0,           0,           -1,     3},
 };
 
@@ -65,9 +66,10 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 #include "bud.c"
 static const Layout layouts[] = {
   /* symbol     arrange function */
-  { " -+- ",    budnogaps},
-  { " [+] ",    bud  },
-  { " [^] ",    NULL  },
+  {" -⬜- ",     budnogaps },
+  {" [⬜] ",     budnoigaps},
+  {" [+] ",     bud       },
+  {" -+- ",     budnoogaps },
   {NULL, NULL}
 };
 
@@ -152,13 +154,12 @@ static Key keys[] = {
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
   /* click                event mask      button          function        argument */
-  { ClkWinTitle,          0,              Button1,        clickbar,       {0} },
-  { ClkWinTitle,          0,              Button3,        clickbar,       {1} },
-  { ClkWinTitle,          0,              Button2,        clickbar,       {2} },
+  { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "0"} },
+  { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "1"} },
+  { ClkWinTitle,          0,              Button2,        clickbar,       {.v = "2"} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
-  { ClkFrameWin,          0,              Button1,        movemouse,      {0} },
   { ClkLtSymbol,          0,              Button1,        cyclelayout,    {.i = +1 } },
-  { ClkFrameWin,          0,              Button2,        killclient,     {0} },
+  { ClkLtSymbol,          0,              Button3,        cyclelayout,    {.i = -1 } },
   { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
 };
 
@@ -174,10 +175,11 @@ static Signal signals[] = {
 
 static const Block blocks[] = {
   /*Icon*//*Command*/ 
-  {"",    "music",                      {"mediacontrol prev", "mediacontrol next", "mediacontrol toggle"}},
-  {";",   "date +%-I:%M | sed 's/ //'", {"",                  "",                  ""                   }},
-  {"",    "volume",                     {"pamixer -t", "button 2", "button 3"}},
-  {"",    "disk /home/john ",          {"button 1", "button 2", "button 3"}},
-  {"",    "battery",                    {"button 1", "button 2", "button 3"}},
-  {"",    "cpu",                        {"button 1", "button 2", "button 3"}},
+  {"",    "music",                      }, //{"mediacontrol prev",           "mediacontrol next", "mediacontrol toggle"}},
+  {";",   "date +%-I:%M | sed 's/ //'", }, //{"",                            "",                  ""                   }},
+  {"",    "volume",                     }, //{"pamixer -t",                  "button 2",          "button 3"           }},
+  {"",    "volume-mic",                 }, //{"pamixer --default-source -t", "button 2",          "button 3"           }},
+  {"",    "disk /home/john ",          }, //{"button 1",                    "button 2",          "button 3"           }},
+  {"",    "battery",                    }, //{"button 1",                    "button 2",          "button 3"           }},
+  {"",    "cpu",                        }, //{"button 1",                    "button 2",          "button 3"           }},
 };
