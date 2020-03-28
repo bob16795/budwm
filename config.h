@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const char *fonts[]          = { "FontAwesome5Free:style=Solid:size=10", "Delugia Nerd Font:size=10"};
+static const char *fonts[]          = { "Delugia Nerd Font:size=10"};
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
@@ -13,6 +13,7 @@ static const int topbar             = 1;        /* 0 means bottom bar */
 static const int gappsi             = 15;       /* inner gaps */
 static const int gappso             = 20;       /* outer gaps */
 static const int frameicons         = 1;        /* show container icons in frame */
+static const int frametabs          = 1;        /* show container icons in frame */
 static int absplit                  = 916;
 static int acsplit                  = 170;
 static int bdsplit                  = 300;

@@ -969,23 +969,59 @@ drawframe(Client* c)
 {
   char icon[8];
   if (c->isframe) {
-    drw_setscheme(drw, scheme[SchemeNorm]);
-    if (selmon->sel == c){
-      drw_setscheme(drw, scheme[SchemeSel]);
+    if (frametabs) {
+      Client* cb;
+      int tot = 0;
+      for (cb = c->mon->clients; cb; cb = cb->next){
+        if (ISVISIBLE(cb) && cb->container == c->container){
+          tot ++;
+        }
+      }
+      int w = ((c->w + 2 * c->bw) /tot);
+      int cur = 0;
+      for (cb = c->mon->clients; cb; cb = cb->next){
+        if (ISVISIBLE(cb) && cb->container == c->container){
+          drw_setscheme(drw, scheme[SchemeNorm]);
+          if (c->mon->sel == cb)
+            drw_setscheme(drw, scheme[SchemeSel]);
+          if (cb->isfloating)
+            icon[0] = 'F';
+          else
+            icon[0] = 'T';
+          if (cb->icon)
+            strcpy(icon, cb->icon);
+          drw_text(drw, cur * w, 0, w, bh, 0, " ", 0);
+          drw_text(drw, cur * w + TEXTW(" "), 0, w - TEXTW(" "), bh, 0, cb->name, 0);
+          if (cur != 0) 
+            drw_rect(drw, cur * w, 0, c->bw, bh, 2, 0);
+          if (cur != tot - 1)
+            drw_rect(drw, (cur + 1) * w - c->bw, 0, c->bw, bh, 2, 0);
+          drw_rect(drw, cur * w, bh - c->bw, w, bh, 2, 0);
+          cur ++;
+          if (frameicons){
+            drw_text(drw, cur * w  - TEXTW(icon) - TEXTW(" "), 0, TEXTW(icon), bh - 1, 0, icon, 0);
+          }
+
+        }
+      }
+    } else {
+      drw_setscheme(drw, scheme[SchemeNorm]);
+      if (selmon->sel == c){
+        drw_setscheme(drw, scheme[SchemeSel]);
+      }
+      drw_rect(drw, 0, 0, c->w + 2 * c->bw, bh, 1, 0);
+      if (c->isfloating)
+        icon[0] = 'F';
+      else
+        icon[0] = 'T';
+      if (c->icon)
+        strcpy(icon, c->icon);
+      drw_text(drw, 0, 0, c->w + 2 * c->bw, bh, 0, " ", 0);
+      drw_text(drw, TEXTW(" "), 0, c->w + 2 * c->bw, bh, 0, c->name, 0);
+      if (frameicons){
+        drw_text(drw, c->w - TEXTW(icon) - TEXTW(" "), 0, TEXTW(icon), bh - 1, 0, icon, 0);
+      }
     }
-    drw_rect(drw, 0, 0, c->w + 2 * c->bw, bh, 1, 0);
-    if (c->isfloating)
-      icon[0] = 'F';
-    else
-      icon[0] = 'T';
-    if (c->icon)
-      strcpy(icon, c->icon);
-    drw_text(drw, 0, 0, c->w + 2 * c->bw, bh, 0, " ", 0);
-    drw_text(drw, TEXTW(" "), 0, c->w + 2 * c->bw, bh, 0, c->name, 0);
-    if (icon && frameicons){
-      drw_text(drw, c->w - TEXTW(icon) - TEXTW(" "), 0, TEXTW(icon), bh - 1, 0, icon, 0);
-    }
-    drw_rect(drw, 0, bh - c->bw, c->w, bh, 2, 0);
     drw_map(drw, c->framewin, 0, 0, c->w + 2 * c->bw, bh);
   }
 }
