@@ -7,7 +7,7 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
-static const int showsystray        = 1;        /* 0 means no systray */
+static const int showsystray        = 0;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int gappsi             = 15;       /* inner gaps */
@@ -39,25 +39,27 @@ static const Rule rules[] = {
    *  WM_CLASS(STRING) = instance, class
    *  WM_NAME(STRING) = title
    */
-  /* class         instance    title       Force name    tags mask     iscentered   isfloating   monitor container*/
-  { NULL,          NULL,       NULL,       NULL,         0,            1,           1,           -1,     3},
-  { "xstA",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     1},
-  { "xstB",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     2},
-  { "xstC",        NULL,       NULL,       "Term",       0,            0,           0,           -1,     3},
-  { "htop",        NULL,       NULL,       "Tasks",      0,            0,           0,           -1,     1},
-  { "Sxiv",        NULL,       NULL,       "Pix",        0,            0,           0,           -1,     2},
-  { "cava",        NULL,       NULL,       "Vis",        0,            0,           0,           -1,     2},
-  { "ncmpcpp",     NULL,       NULL,       "Mus",        0,            0,           0,           -1,     2},
-  { "Subl",        NULL,       NULL,       "Code",       0,            0,           0,           -1,     3},
-  { "qutebrowser", NULL,       NULL,       "Web",        0,            0,           0,           -1,     3},
-  { "Files",       NULL,       NULL,       "Files",      0,            0,           0,           -1,     4},
-  { "Lutris",      NULL,       NULL,       "Gam",        0,            0,           0,           -1,     3},
-  { "Zathura",     NULL,       NULL,       "PDF",        0,            0,           0,           -1,     3},
-  { "Pavucontrol", NULL,       NULL,       "Vol",        0,            0,           0,           -1,     2},
-  { "libreoffice-writer",NULL, NULL,       "Wrd",        0,            0,           0,           -1,     3},
-  { "minecraft-launcher",NULL, NULL,       "Gam",        0,            0,           0,           -1,     3},
-  { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        0,            0,           0,           -1,     0},
-  { NULL,          "winword.exe",NULL,     "Wrd",        0,            0,           0,           -1,     3},
+  /* class         instance    title       Force name    icon    tags mask     iscentered   isfloating   monitor container*/
+  { NULL,          NULL,       NULL,       NULL,         0,      0,            1,           1,           -1,     3},
+  { "xstA",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     1},
+  { "xstB",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     2},
+  { "xstC",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     3},
+  { "neomutt",     NULL,       NULL,       "Mail",       "✉",    0,            0,           0,           -1,     3},
+  { "htop",        NULL,       NULL,       "Tasks",      "",    0,            0,           0,           -1,     1},
+  { "Sxiv",        NULL,       NULL,       "Pix",        "P",    0,            0,           0,           -1,     2},
+  { "cava",        NULL,       NULL,       "Vis",        "A",    0,            0,           0,           -1,     2},
+  { "ncmpcpp",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     2},
+  { "Subl",        NULL,       NULL,       "Code",       "",    0,            0,           0,           -1,     3},
+  { "qutebrowser", NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
+  { "Files",       NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     4},
+  { "Lutris",      NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
+  { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
+  { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
+  { "Pavucontrol", NULL,       NULL,       "Vol",        "",    0,            0,           0,           -1,     2},
+  { "libreoffice-writer",NULL, NULL,       "Wrd",        "",    0,            0,           0,           -1,     3},
+  { "minecraft-launcher",NULL, NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
+  { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        "",    0,            0,           0,           -1,     0},
+  { NULL,          "winword.exe",NULL,     "Wrd",        "",    0,            0,           0,           -1,     3},
 };
 
 /* layout(s) */
@@ -67,9 +69,9 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 static const Layout layouts[] = {
   /* symbol     arrange function */
   {" -⬜- ",     budnogaps },
-  {" [⬜] ",     budnoigaps},
-  {" [+] ",     bud       },
   {" -+- ",     budnoogaps },
+  {" [+] ",     bud       },
+  {" [⬜] ",     budnoigaps},
   {NULL, NULL}
 };
 
@@ -86,8 +88,8 @@ static const Layout layouts[] = {
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/bin/xst", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", "-monitor", "VGA1", NULL };
-static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "200", "-monitor", "VGA1", NULL };
+static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", NULL };
+static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "VGA1", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
@@ -100,7 +102,8 @@ static Key keys[] = {
   { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("xst", "/bin/bash") },
   { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("xstC", "/bin/bash") },
   { MODKEY,                       XK_i,      spawn,           TERMCMD("htop", "/usr/bin/htop") },
-  { MODKEY,                       XK_t,      spawn,           SHCMD("bwpcontrol thememenu") },
+  { MODKEY,                       XK_e,      spawn,           TERMCMD("neomutt", "/usr/bin/neomutt") },
+  { MODKEY,                       XK_t,      spawn,           SHCMD("mondocontrol menu") },
   { MODKEY,                       XK_m,      spawn,           TERMCMD("ncmpcpp", "/usr/bin/ncmpcpp") },
   { MODKEY|ShiftMask,             XK_b,      spawn,           SHCMD("sxiv -b -s h ~/pix/wallpapers/currentwall") },
   { MODKEY|ShiftMask,             XK_w,      spawn,           SHCMD("bwpcontrol menu") },
@@ -108,8 +111,7 @@ static Key keys[] = {
   { MODKEY|ShiftMask,             XK_t,      spawn,           SHCMD("sublaunch -p todo") },
   { MODKEY,                       XK_c,      spawn,           SHCMD("sublaunch -p dox") },
   { MODKEY,                       XK_a,      spawn,           SHCMD("pavucontrol") },
-  { MODKEY,                       XK_l,      spawn,           SHCMD("linklord -x 'qutebrowser \"%u\"'") },
-  { MODKEY|ShiftMask,             XK_l,      spawn,           SHCMD("linklord -d ~/.config/pdflord/pdfs -s ~/.config/pdflord -x 'zathura \"%u\"'") },
+  { MODKEY,                       XK_l,      spawn,           SHCMD("linklord -x 'gurl \"%u\"'") },
   { MODKEY,                       XK_r,      spawn,           TERMCMD("Files", "/usr/bin/ranger") },
   { MODKEY,                       XK_f,      fullscreen,      {0} },
   { MODKEY,                       XK_o,      setacsplit,      {.i = -170} },
@@ -157,6 +159,7 @@ static Button buttons[] = {
   { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "0"} },
   { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "1"} },
   { ClkWinTitle,          0,              Button2,        clickbar,       {.v = "2"} },
+  { ClkFrameWin,          0,              Button1,        movemouse,      {.v = "2"} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
   { ClkLtSymbol,          0,              Button1,        cyclelayout,    {.i = +1 } },
   { ClkLtSymbol,          0,              Button3,        cyclelayout,    {.i = -1 } },
@@ -175,11 +178,16 @@ static Signal signals[] = {
 
 static const Block blocks[] = {
   /*Icon*//*Command*/ 
-  {"",    "music",                      }, //{"mediacontrol prev",           "mediacontrol next", "mediacontrol toggle"}},
-  {";",   "date +%-I:%M | sed 's/ //'", }, //{"",                            "",                  ""                   }},
-  {"",    "volume",                     }, //{"pamixer -t",                  "button 2",          "button 3"           }},
-  {"",    "volume-mic",                 }, //{"pamixer --default-source -t", "button 2",          "button 3"           }},
-  {"",    "disk /home/john ",          }, //{"button 1",                    "button 2",          "button 3"           }},
-  {"",    "battery",                    }, //{"button 1",                    "button 2",          "button 3"           }},
-  {"",    "cpu",                        }, //{"button 1",                    "button 2",          "button 3"           }},
+  {"",    "nameinfo"                   },
+  {"",    "music"                      },
+  {";",   "date +%-I:%M | sed 's/ //'" },
+  {"",    "wswpswitcher"               },
+  {"",    "volume"                     },
+  {"",    "volume-mic"                 },
+  {"",    "disk /home/john "          },
+  {"",    "battery"                    },
+  {"",    "cpu"                        },
+  {"",    "mailbox"                    },
+  {"",    "bwp-status"                 },
+  {"",    "mondo-status"               },
 };
