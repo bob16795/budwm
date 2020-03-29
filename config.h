@@ -58,6 +58,7 @@ static const Rule rules[] = {
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
   { "Pavucontrol", NULL,       NULL,       "Vol",        "",    0,            0,           0,           -1,     2},
   { "libreoffice-writer",NULL, NULL,       "Wrd",        "",    0,            0,           0,           -1,     3},
+  { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "minecraft-launcher",NULL, NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
   { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        "",    0,            0,           0,           -1,     0},
   { NULL,          "winword.exe",NULL,     "Wrd",        "",    0,            0,           0,           -1,     3},

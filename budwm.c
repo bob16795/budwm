@@ -401,7 +401,7 @@ applyrules(Client *c)
         strcpy(c->icon, r->icon);
       else {
         c->icon[0] = c->name[0]; 
-        c->icon[1] = "\0";
+        c->icon[1] = '\0';
       }
       c->iscentered = r->iscentered;
       c->container = r->container;
@@ -969,18 +969,17 @@ drawframe(Client* c)
 {
   char icon[8];
   if (c->isframe) {
-    if (frametabs) {
+    if (frametabs & !c->isfloating) {
       Client* cb;
       int tot = 0;
       for (cb = c->mon->clients; cb; cb = cb->next){
-        if (ISVISIBLE(cb) && cb->container == c->container){
+        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating)
           tot ++;
-        }
       }
       int w = ((c->w + 2 * c->bw) /tot);
       int cur = 0;
       for (cb = c->mon->clients; cb; cb = cb->next){
-        if (ISVISIBLE(cb) && cb->container == c->container){
+        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating){
           drw_setscheme(drw, scheme[SchemeNorm]);
           if (c->mon->sel == cb)
             drw_setscheme(drw, scheme[SchemeSel]);
