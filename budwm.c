@@ -405,6 +405,14 @@ applyrules(Client *c)
       }
       c->iscentered = r->iscentered;
       c->container = r->container;
+      if (c->container == 4 && bdsplit > c->mon->mh)
+        c->container = 2;
+      if (c->container == 3 && acsplit > c->mon->mh)
+        c->container = 1;
+      if (c->container == 4 && absplit > c->mon->mw)
+        c->container = 3;
+      if (c->container == 2 && absplit > c->mon->mw)
+        c->container = 1;
       c->isfloating = r->isfloating;
       c->tags |= r->tags;
       for (m = mons; m && m->num != r->monitor; m = m->next);
@@ -546,13 +554,30 @@ buttonpress(XEvent *e)
     else
       click = ClkWinTitle;
   } else if ((c = wintoclient(ev->window))) {
-    fprintf(stderr, "%d - %d", ev->y, c->y);
-    if (ev->y < c->y)
+    click = ClkClientWin;
+    int tot = 0;
+    if (ev->y < bh) {
       click = ClkFrameWin;
+      Client* cb;
+      for (cb = c->mon->clients; cb; cb = cb->next){
+        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating)
+          tot ++;
+      }
+      int w = ((c->w + 2 * c->bw) /tot);
+      int cur = 0;
+      for (cb = c->mon->clients; cb; cb = cb->next){
+        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating){
+          cur ++;
+          if (ev->x < cur * w ) {
+            c = cb;
+            break;
+          }
+        }
+      }
+    }
     focus(c);
     restack(selmon);
     XAllowEvents(dpy, ReplayPointer, CurrentTime);
-    click = ClkClientWin;
   }
   for (i = 0; i < LENGTH(buttons); i++)
     if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
@@ -1217,7 +1242,7 @@ grabbuttons(Client *c, int focused)
       XGrabButton(dpy, AnyButton, AnyModifier, c->framewin, False,
         BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     for (i = 0; i < LENGTH(buttons); i++)
-      if (buttons[i].click == ClkClientWin)
+      if (buttons[i].click == ClkClientWin || buttons[i].click == ClkFrameWin)
         for (j = 0; j < LENGTH(modifiers); j++)
           XGrabButton(dpy, buttons[i].button,
             buttons[i].mask | modifiers[j],
@@ -1348,12 +1373,12 @@ loadxrdb()
       xrdb = XrmGetStringDatabase(resm);
 
       if (xrdb != NULL) {
-        XRDB_LOAD_COLOR("dwm.normbordercolor", normbordercolor);
-        XRDB_LOAD_COLOR("dwm.normbgcolor", normbgcolor);
-        XRDB_LOAD_COLOR("dwm.normfgcolor", normfgcolor);
-        XRDB_LOAD_COLOR("dwm.selbordercolor", selbordercolor);
-        XRDB_LOAD_COLOR("dwm.selbgcolor", selbgcolor);
-        XRDB_LOAD_COLOR("dwm.selfgcolor", selfgcolor);
+        XRDB_LOAD_COLOR("budwm.normbordercolor", normbordercolor);
+        XRDB_LOAD_COLOR("budwm.normbgcolor", normbgcolor);
+        XRDB_LOAD_COLOR("budwm.normfgcolor", normfgcolor);
+        XRDB_LOAD_COLOR("budwm.selbordercolor", selbordercolor);
+        XRDB_LOAD_COLOR("budwm.selbgcolor", selbgcolor);
+        XRDB_LOAD_COLOR("budwm.selfgcolor", selfgcolor);
       }
     }
   }
@@ -1364,7 +1389,7 @@ loadxrdb()
 void
 frame(Client *c){
   c->framewin = XCreateSimpleWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, scheme[SchemeNorm][ColBg].pixel, scheme[SchemeNorm][ColBg].pixel);
-  XSelectInput(dpy, c->framewin, SubstructureRedirectMask|SubstructureNotifyMask);
+  XSelectInput(dpy, c->framewin, EnterWindowMask|SubstructureRedirectMask|SubstructureNotifyMask);
   XAddToSaveSet(dpy, c->win);
   XReparentWindow(dpy, c->win, c->framewin, 0, bh);
   XMapWindow(dpy, c->framewin);
@@ -1385,7 +1410,9 @@ manage(Window w, XWindowAttributes *wa)
   c->w = c->oldw = wa->width;
   c->h = c->oldh = wa->height;
   c->oldbw = wa->border_width;
-    c->container = 3;
+  c->container = 3;
+  if (acsplit > selmon->mh)
+    c->container = 1;
 
   updatetitle(c);
   if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
@@ -1421,7 +1448,7 @@ manage(Window w, XWindowAttributes *wa)
   updatewindowtype(c);
   updatesizehints(c);
   updatewmhints(c);
-  XSelectInput(dpy, c->framewin, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
+  //XSelectInput(dpy, c->framewin, EnterWindowMask|PropertyChangeMask|StructureNotifyMask);
   XSelectInput(dpy, c->win, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
   grabbuttons(c, 0);
   if (!c->isfloating)
@@ -2023,6 +2050,14 @@ setcontainer(const Arg *arg) {
   if(f < 1 || f > 4)
     return;
   c->container = f;
+  if (c->container == 4 && bdsplit > c->mon->mh)
+    c->container = 2;
+  if (c->container == 3 && acsplit > c->mon->mh)
+    c->container = 1;
+  if (c->container == 4 && absplit > c->mon->mw)
+    c->container = 3;
+  if (c->container == 2 && absplit > c->mon->mw)
+    c->container = 1;
   c->isfloating = 0;
   arrange(selmon);
 }
@@ -2072,8 +2107,8 @@ void
 setfocus(Client *c)
 {
   if (!c->neverfocus) {
-    XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
     //XSetInputFocus(dpy, c->framewin, RevertToPointerRoot, CurrentTime);
+    XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
     XChangeProperty(dpy, root, netatom[NetActiveWindow],
       XA_WINDOW, 32, PropModeReplace,
       (unsigned char *) &(c->win), 1);
@@ -2248,7 +2283,7 @@ setup(void)
   XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
   XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8,
-    PropModeReplace, (unsigned char *) "dwm", 3);
+    PropModeReplace, (unsigned char *) "budwm", 3);
   XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
   /* EWMH support per view */
@@ -2337,7 +2372,7 @@ spawn(const Arg *arg)
       close(ConnectionNumber(dpy));
     setsid();
     execvp(((char **)arg->v)[0], (char **)arg->v);
-    fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
+    fprintf(stderr, "budwm: execvp %s", ((char **)arg->v)[0]);
     perror(" failed");
     exit(EXIT_SUCCESS);
   }
@@ -2389,6 +2424,14 @@ togglefloating(const Arg *arg)
     selmon->sel->container = 5;
   } else {
     selmon->sel->container = selmon->sel->oldc;
+    if (selmon->sel->container == 4 && bdsplit > selmon->mh)
+      selmon->sel->container = 2;
+    if (selmon->sel->container == 3 && bdsplit > selmon->mh)
+      selmon->sel->container = 1;
+    if (selmon->sel->container == 4 && bdsplit > selmon->mw)
+      selmon->sel->container = 3;
+    if (selmon->sel->container == 2 && bdsplit > selmon->mw)
+      selmon->sel->container = 1;
   }
   arrange(selmon);
 }
@@ -2526,7 +2569,7 @@ updatebars(void)
     .background_pixmap = ParentRelative,
     .event_mask = ButtonPressMask|ExposureMask
   };
-  XClassHint ch = {"dwm", "dwm"};
+  XClassHint ch = {"budwm", "budwm"};
   for (m = mons; m; m = m->next) {
     if (m->barwin)
       continue;
@@ -2833,7 +2876,7 @@ updatesystray(void)
       XSync(dpy, False);
     }
     else {
-      fprintf(stderr, "dwm: unable to obtain system tray.\n");
+      fprintf(stderr, "budwm: unable to obtain system tray.\n");
       free(systray);
       systray = NULL;
       return;
@@ -3007,7 +3050,7 @@ xerror(Display *dpy, XErrorEvent *ee)
   || (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
   || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
     return 0;
-  fprintf(stderr, "dwm: fatal error: request code=%d, error code=%d\n",
+  fprintf(stderr, "budwm: fatal error: request code=%d, error code=%d\n",
     ee->request_code, ee->error_code);
   return xerrorxlib(dpy, ee); /* may call exit */
 }
@@ -3023,7 +3066,7 @@ xerrordummy(Display *dpy, XErrorEvent *ee)
 int
 xerrorstart(Display *dpy, XErrorEvent *ee)
 {
-  die("dwm: another window manager is already running");
+  die("budwm: another window manager is already running");
   return -1;
 }
 
@@ -3058,13 +3101,13 @@ int
 main(int argc, char *argv[])
 {
   if (argc == 2 && !strcmp("-v", argv[1]))
-    die("dwm-"VERSION);
+    die("budwm-"VERSION);
   else if (argc != 1)
-    die("usage: dwm [-v]");
+    die("usage: budwm [-v]");
   if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
     fputs("warning: no locale support\n", stderr);
   if (!(dpy = XOpenDisplay(NULL)))
-    die("dwm: cannot open display");
+    die("budwm: cannot open display");
   checkotherwm();
   XrmInitialize();
   loadxrdb();

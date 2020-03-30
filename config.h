@@ -42,16 +42,18 @@ static const Rule rules[] = {
    */
   /* class         instance    title       Force name    icon    tags mask     iscentered   isfloating   monitor container*/
   { NULL,          NULL,       NULL,       NULL,         0,      0,            1,           1,           -1,     3},
-  { "xstA",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     1},
-  { "xstB",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     2},
-  { "xstC",        NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     3},
+  { "stA",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     1},
+  { "stB",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     2},
+  { "stC",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     3},
   { "neomutt",     NULL,       NULL,       "Mail",       "✉",    0,            0,           0,           -1,     3},
   { "htop",        NULL,       NULL,       "Tasks",      "",    0,            0,           0,           -1,     1},
   { "Sxiv",        NULL,       NULL,       "Pix",        "P",    0,            0,           0,           -1,     2},
+  { "mpv",         NULL,       NULL,       "Vid",        "",    0,            0,           0,           -1,     2},
   { "cava",        NULL,       NULL,       "Vis",        "A",    0,            0,           0,           -1,     2},
   { "ncmpcpp",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     2},
   { "Subl",        NULL,       NULL,       "Code",       "",    0,            0,           0,           -1,     3},
   { "qutebrowser", NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
+  { "Surf",        NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "Files",       NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     4},
   { "Lutris",      NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
@@ -87,22 +89,23 @@ static const Layout layouts[] = {
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-#define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/bin/xst", "-T", name, "-c", name, "-e", cmd, NULL } }
+#define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/local/bin/st", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-static const char *runcmd[] = { "rofi", "-show", "run", "-padding", "200", NULL };
-static const char *druncmd[] = { "rofi", "-show", "drun", "-show-icons", "-padding", "VGA1", NULL };
+static const char *runcmd[] = { "dmenu_run", NULL };
+static const char *druncmd[] = { "dmenu_run", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
   { MODKEY,                       XK_h,      cyclelayout,     {.i = +1 } },
+  { MODKEY,                       XK_grave,  spawn,           SHCMD("iconpick") },
   { MODKEY,                       XK_d,      spawn,           {.v = runcmd } },
   { MODKEY|ShiftMask,             XK_d,      spawn,           {.v = druncmd } },
   { MODKEY,                       XK_v,      spawn,           TERMCMD("cava", "cava") },
-  { MODKEY,                       XK_Return, spawn,           TERMCMD("xstA", "/bin/bash") },
-  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("xstB", "/bin/bash") },
-  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("xst", "/bin/bash") },
-  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("xstC", "/bin/bash") },
+  { MODKEY,                       XK_Return, spawn,           TERMCMD("stA", "/bin/bash") },
+  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("stB", "/bin/bash") },
+  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("st", "/bin/bash") },
+  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("stC", "/bin/bash") },
   { MODKEY,                       XK_i,      spawn,           TERMCMD("htop", "/usr/bin/htop") },
   { MODKEY,                       XK_e,      spawn,           TERMCMD("neomutt", "/usr/bin/neomutt") },
   { MODKEY,                       XK_t,      spawn,           SHCMD("mondocontrol menu") },
@@ -161,7 +164,8 @@ static Button buttons[] = {
   { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "0"} },
   { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "1"} },
   { ClkWinTitle,          0,              Button2,        clickbar,       {.v = "2"} },
-  { ClkFrameWin,          0,              Button1,        movemouse,      {.v = "2"} },
+  { ClkFrameWin,          ShiftMask,      Button2,        killclient,     {0} },
+  { ClkFrameWin,          ShiftMask,      Button1,        0,              {0} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
   { ClkLtSymbol,          0,              Button1,        cyclelayout,    {.i = +1 } },
   { ClkLtSymbol,          0,              Button3,        cyclelayout,    {.i = -1 } },

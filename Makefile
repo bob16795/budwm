@@ -17,10 +17,7 @@ options:
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk
-
-config.h:
-	cp config.def.h $@
+${OBJ}: config.mk
 
 budwm: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}
