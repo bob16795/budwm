@@ -681,7 +681,7 @@ clientmessage(XEvent *e)
       updatesystrayicongeom(c, wa.width, wa.height);
       XAddToSaveSet(dpy, c->win);
       XSelectInput(dpy, c->win, StructureNotifyMask | PropertyChangeMask | ResizeRedirectMask);
-      XSelectInput(dpy, c->framewin, StructureNotifyMask | PropertyChangeMask | ResizeRedirectMask);
+      //XSelectInput(dpy, c->framewin, StructureNotifyMask | PropertyChangeMask | ResizeRedirectMask);
       XReparentWindow(dpy, c->win, systray->win, 0, 0);
       /* use parents background color */
       swa.background_pixel  = scheme[SchemeNorm][ColBg].pixel;
@@ -1242,7 +1242,14 @@ grabbuttons(Client *c, int focused)
       XGrabButton(dpy, AnyButton, AnyModifier, c->framewin, False,
         BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     for (i = 0; i < LENGTH(buttons); i++)
-      if (buttons[i].click == ClkClientWin || buttons[i].click == ClkFrameWin)
+      if (buttons[i].click == ClkClientWin)
+        for (j = 0; j < LENGTH(modifiers); j++)
+          XGrabButton(dpy, buttons[i].button,
+            buttons[i].mask | modifiers[j],
+            c->win, False, BUTTONMASK,
+            GrabModeAsync, GrabModeSync, None, None);
+    for (i = 0; i < LENGTH(buttons); i++)
+      if (buttons[i].click == ClkFrameWin)
         for (j = 0; j < LENGTH(modifiers); j++)
           XGrabButton(dpy, buttons[i].button,
             buttons[i].mask | modifiers[j],
@@ -1448,7 +1455,6 @@ manage(Window w, XWindowAttributes *wa)
   updatewindowtype(c);
   updatesizehints(c);
   updatewmhints(c);
-  //XSelectInput(dpy, c->framewin, EnterWindowMask|PropertyChangeMask|StructureNotifyMask);
   XSelectInput(dpy, c->win, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
   grabbuttons(c, 0);
   if (!c->isfloating)
