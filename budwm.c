@@ -262,12 +262,6 @@ static void resizerequest(XEvent *e);
 static void restack(Monitor *m);
 static void run(void);
 static void scan(void);
-static void scratchpad_hide();
-static int scratchpad_last_showed_is_killed(void);
-static void scratchpad_del();
-static void scratchpad_show();
-static void scratchpad_show_client (Client * c);
-static void scratchpad_show_first (void);
 static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
 static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
@@ -360,7 +354,6 @@ static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
-static Client * scratchpad_last_showed = NULL;
 static unsigned int seltags;
 
 /* configuration, allows nested code to access above variables */
@@ -461,7 +454,7 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
     if (*y + *h + 2 * c->bw <= m->wy)
       *y = m->wy;
     if (c->isframe)
-      *h = *h + 16;
+      *h = *h;
   }
   if (*h < bh)
     *h = bh;
@@ -1040,7 +1033,6 @@ drawframe(Client* c)
       if (selmon->sel == c){
         drw_setscheme(drw, scheme[SchemeSel]);
       }
-      drw_rect(drw, 0, 0, c->w + 2 * c->bw, bh, 1, 0);
       if (c->isfloating)
         icon[0] = 'F';
       else
@@ -1052,6 +1044,7 @@ drawframe(Client* c)
       if (frameicons){
         drw_text(drw, c->w - TEXTW(icon) - TEXTW(" "), 0, TEXTW(icon), bh - 1, 0, icon, 0);
       }
+      drw_rect(drw, 0, 0, c->w + 2 * c->bw, bh, 1, 0);
     }
     drw_map(drw, c->framewin, 0, 0, c->w + 2 * c->bw, bh);
   }
@@ -1920,97 +1913,6 @@ scan(void)
   }
 }
 
-static void scratchpad_hide()
-{
-  if (selmon -> sel)
-  {
-    selmon -> sel -> tags = scratchpad_mask;
-    focus(NULL);
-    arrange(selmon);
-  }
-}
-
-static int scratchpad_last_showed_is_killed(void)
-{
-  _Bool killed = 1;
-  for(Client * c = selmon -> clients; c != NULL; c = c -> next)
-  {
-    if(c == scratchpad_last_showed)
-    {
-      killed = 0;
-      break;
-    }
-  }
-  return killed;
-}
-
-static void scratchpad_del()
-{
-  if(selmon -> sel && scratchpad_last_showed != NULL && selmon -> sel == scratchpad_last_showed)
-    scratchpad_last_showed = NULL;
-}
-
-static void scratchpad_show()
-{
-  if(scratchpad_last_showed == NULL || scratchpad_last_showed_is_killed())
-    scratchpad_show_first();
-  else
-  {
-    if(scratchpad_last_showed -> tags != scratchpad_mask)
-    {
-      scratchpad_last_showed -> tags = scratchpad_mask;
-      focus(NULL);
-      arrange(selmon);
-    }
-    else
-    {
-      _Bool found_current = 0;
-      _Bool found_next = 0;
-      for(Client * c = selmon -> clients; c != NULL; c = c -> next)
-      {
-        if(found_current == 0)
-        {
-          if(c == scratchpad_last_showed)
-          {
-            found_current = 1;
-            continue;
-          }
-        }
-        else
-        {
-          if(c -> tags == scratchpad_mask)
-          {
-            found_next = 1;
-            scratchpad_show_client(c);
-            break;
-          }
-        }
-      }
-      if(found_next == 0) scratchpad_show_first();
-    }
-  }
-}
-
-static void scratchpad_show_client(Client * c)
-{
-  scratchpad_last_showed = c;
-  c -> tags = selmon->tagset[seltags];
-  focus(c);
-  arrange(selmon);
-}
-
-static void scratchpad_show_first(void)
-{
-  for(Client * c = selmon -> clients; c != NULL; c = c -> next)
-  {
-    if(c -> tags == scratchpad_mask)
-    {
-      scratchpad_show_client(c);
-      break;
-    }
-  }
-}
-
 
 void
 sendmon(Client *c, Monitor *m)
@@ -2631,7 +2533,7 @@ updateclientlist()
 void updatecurrentdesktop(void){
   long rawdata[] = { selmon->tagset[seltags] };
   int i=0;
-  while(*rawdata >> i+1){
+  while(*rawdata >> (i+1)){
     i++;
   }
   long data[] = { i };
@@ -2728,19 +2630,19 @@ updateipc(void)
   int fd; /* file descriptor to identify a file within a process */
   if ((fd = open(FileName, O_RDWR | O_CREAT | O_TRUNC, 0666)) < 0)  /* -1 signals an error */
     die("open failed...");
-
+  
   Client *c;
   Monitor *m;
   if (fcntl(fd, F_SETLK, &lock) < 0) /** F_SETLK doesn't block, F_SETLKW does **/
     die("fcntl failed to get lock...");
   else {
     for (m = mons; m; m = m->next){
-      char* str[42]; // 7+1+10+1+10+1+10+2
+      char str[42]; // 7+1+10+1+10+1+10+2
       sprintf(str, "Monitor %d %dx%d\n", m->num, m->mw, m->mh);
       write(fd, str, strlen(str));
       for (c = m->clients; c; c = c->next){
-        char* str[278]; // 8+1+256+1+8+1+1+2
-        sprintf(str, "  Client %s %s %c\n", c->name, c->icon, 'A' + c->container);
+        char str[280]; // 8+1+256+1+8+1+1+1+1+2
+        sprintf(str, "  Client %s %s %c %d\n", c->name, c->icon, 'A' - 1 + c->container, c->isfloating);
         write(fd, str, strlen(str));
       }
     }
@@ -2782,28 +2684,28 @@ updatesizehints(Client *c)
     size.flags = PSize;
   if (size.flags & PBaseSize) {
     c->basew = size.base_width;
-    c->baseh = size.base_height;
+    c->baseh = size.base_height + bh;
   } else if (size.flags & PMinSize) {
     c->basew = size.min_width;
-    c->baseh = size.min_height;
+    c->baseh = size.min_height + bh;
   } else
     c->basew = c->baseh = 0;
   if (size.flags & PResizeInc) {
     c->incw = size.width_inc;
-    c->inch = size.height_inc;
+    c->inch = size.height_inc + bh;
   } else
     c->incw = c->inch = 0;
   if (size.flags & PMaxSize) {
     c->maxw = size.max_width;
-    c->maxh = size.max_height;
+    c->maxh = size.max_height + bh;
   } else
     c->maxw = c->maxh = 0;
   if (size.flags & PMinSize) {
     c->minw = size.min_width;
-    c->minh = size.min_height;
+    c->minh = size.min_height + bh;
   } else if (size.flags & PBaseSize) {
     c->minw = size.base_width;
-    c->minh = size.base_height;
+    c->minh = size.base_height + bh;
   } else
     c->minw = c->minh = 0;
   if (size.flags & PAspect) {
@@ -2967,7 +2869,7 @@ updatetitle(Client *c)
   if (c->lockname)
     return;
   c->icon[0] = c->name[0]; 
-  c->icon[1] = "\0";
+  c->icon[1] = '\0';
   if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
     gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
   if (c->name[0] == '\0') /* hack to mark broken clients */
