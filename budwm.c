@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -89,6 +90,9 @@
 #define VERSION_MAJOR               0
 #define VERSION_MINOR               0
 #define XEMBED_EMBEDDED_VERSION (VERSION_MAJOR << 16) | VERSION_MINOR
+
+/* ipc file */
+#define FileName "/tmp/budwmipc"
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -301,6 +305,7 @@ static void updatebarpos(Monitor *m);
 static void updatebars(void);
 static void updateclientlist(void);
 static int updategeom(void);
+static int updateipc(void);
 static void updatenumlockmask(void);
 static void updatesizehints(Client *c);
 static void updatestatus(void);
@@ -987,6 +992,8 @@ drawbars(void)
       drawframe(c);
     }
   }
+
+  updateipc();
 }
 
 void
@@ -2284,6 +2291,7 @@ setup(void)
   /* init bars */
   updatebars();
   updatestatus();
+  updateipc();
   /* supporting window for NetWMCheck */
   wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
   XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
@@ -2706,6 +2714,45 @@ updategeom(void)
     selmon = wintomon(root);
   }
   return dirty;
+}
+int
+updateipc(void)
+{
+  struct flock lock;
+  lock.l_type = F_WRLCK;    /* read/write (exclusive versus shared) lock */
+  lock.l_whence = SEEK_SET; /* base for seek offsets */
+  lock.l_start = 0;         /* 1st byte in file */
+  lock.l_len = 0;           /* 0 here means 'until EOF' */
+  lock.l_pid = getpid();    /* process id */
+
+  int fd; /* file descriptor to identify a file within a process */
+  if ((fd = open(FileName, O_RDWR | O_CREAT | O_TRUNC, 0666)) < 0)  /* -1 signals an error */
+    die("open failed...");
+
+  Client *c;
+  Monitor *m;
+  if (fcntl(fd, F_SETLK, &lock) < 0) /** F_SETLK doesn't block, F_SETLKW does **/
+    die("fcntl failed to get lock...");
+  else {
+    for (m = mons; m; m = m->next){
+      char* str[42]; // 7+1+10+1+10+1+10+2
+      sprintf(str, "Monitor %d %dx%d\n", m->num, m->mw, m->mh);
+      write(fd, str, strlen(str));
+      for (c = m->clients; c; c = c->next){
+        char* str[278]; // 8+1+256+1+8+1+1+2
+        sprintf(str, "  Client %s %s %c\n", c->name, c->icon, 'A' + c->container);
+        write(fd, str, strlen(str));
+      }
+    }
+  }
+
+  /* Now release the lock explicitly. */
+  lock.l_type = F_UNLCK;
+  if (fcntl(fd, F_SETLK, &lock) < 0)
+    die("explicit unlocking failed...");
+
+  close(fd); /* close the file: would unlock if needed */
+  return 0;  /* terminating the process would unlock as well */
 }
 
 void
