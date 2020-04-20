@@ -20,7 +20,7 @@ options:
 	${CC} -c ${CFLAGS} $<
 
 ${OBJ}: config.mk config.h bud.c
-${IPCOBJ}: config.mk
+${IPCOBJ}: config.mk config.h
 
 budwm: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}

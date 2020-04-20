@@ -3,7 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define FileName "/tmp/budwmipc"
+#define IPC 
+#include "config.h"
 
 void report_and_exit(const char* msg) {
   perror(msg);

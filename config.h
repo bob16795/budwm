@@ -1,5 +1,9 @@
 /* See LICENSE file for copyright and license details. */
 
+/* ipc file */
+#define FileName "/tmp/budwm.ipc"
+
+#ifndef IPC
 /* appearance */
 static const char *fonts[]          = { "Delugia Nerd Font:size=10"};
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
@@ -82,6 +86,9 @@ static const Layout layouts[] = {
   {NULL, NULL}
 };
 
+static void bigB(const Arg *arg);
+static void smallB(const Arg *arg);
+
 /* key definitions */
 #define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
@@ -126,6 +133,8 @@ static Key keys[] = {
   { MODKEY,                       XK_f,      fullscreen,      {0} },
   { MODKEY,                       XK_o,      setacsplit,      {.i = -170} },
   { MODKEY|ShiftMask,             XK_o,      setacsplit,      {.i = +170} },
+  { MODKEY,                       XK_p,      bigB,            {0} },
+  { MODKEY|ShiftMask,             XK_p,      smallB,          {0} },
   { MODKEY,                       XK_b,      togglebar,       {0} },
   { MODKEY,                       XK_g,      spawn,           SHCMD("lutris")},
   { MODKEY,                       XK_Tab,    focusstack,      {.i = +1 } },
@@ -195,5 +204,22 @@ static const Block blocks[] = {
   {"",    "cpu"                        },
   {"",    "mailbox"                    },
   {"",    "bwp-status"                 },
-  {"",    "mondo-status"               },
+  {"",    "mondo-status"               }
 };
+
+void
+bigB(const Arg *arg) {
+  Arg a = {.i = +716};
+  setabsplit(&a);
+  Arg b = {.i = +450};
+  setbdsplit(&b);
+}
+
+void
+smallB(const Arg *arg) {
+  Arg a = {.i = +916};
+  setabsplit(&a);
+  Arg b = {.i = +300};
+  setbdsplit(&b);
+}
+#endif
