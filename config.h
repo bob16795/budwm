@@ -12,6 +12,7 @@ static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows sel
 static const unsigned int systrayspacing = 2;   /* systray spacing */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
 static const int showsystray        = 1;        /* 0 means no systray */
+static const int enableipc          = 1;        /* 0 means ipc */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int gappsi             = 15;       /* inner gaps */
@@ -53,7 +54,8 @@ static const Rule rules[] = {
   { "htop",        NULL,       NULL,       "Tasks",      "",    0,            0,           0,           -1,     1},
   { "Sxiv",        NULL,       NULL,       "Pix",        "P",    0,            0,           0,           -1,     2},
   { "mpv",         NULL,       NULL,       "Vid",        "",    0,            0,           0,           -1,     2},
-  { "cava",        NULL,       NULL,       "Vis",        "A",    0,            0,           0,           -1,     2},
+  { "cava",        NULL,       NULL,       "Vis",        "C",    0,            0,           0,           -1,     2},
+  { "Spotify",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     1},
   { "ncmpcpp",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     2},
   { "Subl",        NULL,       NULL,       "Code",       "",    0,            0,           0,           -1,     3},
   { "qutebrowser", NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
@@ -64,6 +66,7 @@ static const Rule rules[] = {
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
   { "Pavucontrol", NULL,       NULL,       "Vol",        "",    0,            0,           0,           -1,     2},
+  { "XEyes",       NULL,       NULL,       "EYES",       "I",    0,            0,           0,           -1,     2},
   { NULL,  "libreoffice",      NULL,       "Wrd",        "",    0,            0,           0,           -1,     3},
   { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
@@ -80,7 +83,7 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 static const Layout layouts[] = {
   /* symbol     arrange function */
   {" -⬜- ",     budnogaps },
-  {" -+- ",     budnoogaps },
+  {" -+- ",     budnoogaps},
   {" [+] ",     bud       },
   {" [⬜] ",     budnoigaps},
   {NULL, NULL}
@@ -96,7 +99,7 @@ static void smallB(const Arg *arg);
   { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
   { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
   { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
-
+        
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/local/bin/st", "-T", name, "-c", name, "-e", cmd, NULL } }
@@ -112,10 +115,10 @@ static Key keys[] = {
   { MODKEY,                       XK_d,      spawn,           {.v = runcmd } },
   { MODKEY|ShiftMask,             XK_d,      spawn,           {.v = druncmd } },
   { MODKEY,                       XK_v,      spawn,           TERMCMD("cava", "cava") },
-  { MODKEY,                       XK_Return, spawn,           TERMCMD("stA", "/bin/zsh") },
-  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("stB", "/bin/zsh") },
-  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("st", "/bin/zsh") },
-  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("stC", "/bin/zsh") },
+  { MODKEY,                       XK_Return, spawn,           TERMCMD("stA", "/home/john/.nimble/bin/nshell") },
+  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("stB", "/home/john/.nimble/bin/nshell") },
+  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("st", "/home/john/.nimble/bin/nshell") },
+  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("stC", "/home/john/.nimble/bin/nshell") },
   { MODKEY,                       XK_i,      spawn,           TERMCMD("htop", "/usr/bin/htop") },
   { MODKEY,                       XK_e,      spawn,           TERMCMD("neomutt", "/usr/bin/neomutt") },
   { MODKEY,                       XK_t,      spawn,           SHCMD("mondocontrol menu") },
@@ -138,7 +141,6 @@ static Key keys[] = {
   { MODKEY,                       XK_b,      togglebar,       {0} },
   { MODKEY,                       XK_g,      spawn,           SHCMD("lutris")},
   { MODKEY,                       XK_Tab,    focusstack,      {.i = +1 } },
-  { MODKEY|ShiftMask,             XK_Tab,    focusstack,      {.i = -1 } },
   { MODKEY,                       XK_q,      killclient,      {0} },
   { MODKEY|ShiftMask,             XK_q,      killclient,      {0} },
   { MODKEY,                       XK_space,  togglefloating,  {0} },
