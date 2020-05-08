@@ -289,6 +289,7 @@ static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
+static void setmode(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
 static void unframe(Client *c);
 static void unmanage(Client *c, int destroyed);
@@ -993,8 +994,17 @@ void
 drawframe(Client* c)
 {
   char icon[8];
+  int mode = 0;
+  if (c->container == 1)
+    mode = amode;
+  else if (c->container == 2)
+    mode = bmode;
+  else if (c->container == 3)
+    mode = cmode;
+  else if (c->container == 4)
+    mode = dmode;
   if (c->isframe) {
-    if (frametabs & !c->isfloating) {
+    if (frametabs & (mode == 1)& !c->isfloating) {
       Client* cb;
       int tot = 0;
       for (cb = c->mon->clients; cb; cb = cb->next){
@@ -1016,6 +1026,7 @@ drawframe(Client* c)
             strcpy(icon, cb->icon);
           drw_text(drw, cur * w, 0, w, bh, 0, " ", 0);
           drw_text(drw, cur * w + TEXTW(" "), 0, w - TEXTW(" "), bh, 0, cb->name, 0);
+          //drw_text(drw, cur * w, 0, w, bh, 0, cb->name, 0);
           if (cur != 0) 
             drw_rect(drw, cur * w, 0, c->bw, bh, 2, 0);
           if (cur != tot - 1)
@@ -1824,7 +1835,7 @@ clickbar(const Arg *arg)
     if (t[0] > '\xf0')
       t = &t[1];
     size += TEXTW(t);
-    size += TEXTW(" ");
+    //size += TEXTW(" ");
     if ( ev.xbutton.x > (selmon->ww -  size)) {
       q = 1;
       break;
@@ -1839,7 +1850,6 @@ clickbar(const Arg *arg)
       if (t[0] > '\xf0')
         t = &t[1];
       size += TEXTW(t);
-      size += TEXTW(" ");
       if ( ev.xbutton.x < (selmon->mx + TEXTW(selmon->ltsymbol) + size)){
         q = 1;
         break;
@@ -2201,6 +2211,10 @@ setup(void)
   updatestatus();
   if (enableipc)
     updateipc();
+  if (onebar)
+    togglebar(NULL);
+  for (Monitor *m = mons; m; m = m->next) 
+    updatebarpos(m);
   /* supporting window for NetWMCheck */
   wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
   XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
@@ -2315,21 +2329,25 @@ tag(const Arg *arg)
 void
 togglebar(const Arg *arg)
 {
-  selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
-  updatebarpos(selmon);
-  resizebarwin(selmon);
+  Monitor *m = selmon;
+  int n;
+  if (onebar)
+    m = systraytomon(selmon);
+  m->showbar = m->pertag->showbars[m->pertag->curtag] = !m->showbar;
+  updatebarpos(m);
+  resizebarwin(m);
   if (showsystray) {
     XWindowChanges wc;
-    if (!selmon->showbar)
+    if (!m->showbar)
       wc.y = -bh;
-    else if (selmon->showbar) {
+    else if (m->showbar) {
       wc.y = 0;
-      if (!selmon->topbar)
-        wc.y = selmon->mh - bh;
+      if (!m->topbar)
+        wc.y = m->mh - bh;
     }
     XConfigureWindow(dpy, systray->win, CWY, &wc);
   }
-  arrange(selmon);
+  arrange(m);
 }
 
 void
@@ -2411,6 +2429,27 @@ toggleview(const Arg *arg)
 }
 
 void
+setmode(const Arg *arg)
+{
+  Client *c;
+  if (!(c =selmon->sel))
+    return;
+  if (!arg)
+    return;
+  if (!arg->i)
+    return;
+  if (c->container == 1)
+    amode = arg->i;
+  if (c->container == 2)
+    bmode = arg->i;
+  if (c->container == 3)
+    cmode = arg->i;
+  if (c->container == 4)
+    dmode = arg->i;
+  for (Monitor* m = mons; m; m = m->next)
+    arrange(m);
+}
+void
 unfocus(Client *c, int setfocus)
 {
   if (!c)
@@ -2430,6 +2469,7 @@ unframe(Client *c)
 {
   XUnmapWindow(dpy, c->framewin);
   XReparentWindow(dpy, c->win, root, 0, 0);
+  XRemoveFromSaveSet(dpy, c->win);
   XRemoveFromSaveSet(dpy, c->win);
   XDestroyWindow(dpy, c->framewin);
   XWindowChanges wc;
@@ -2507,6 +2547,8 @@ updatebars(void)
       XMapRaised(dpy, systray->win);
     XMapRaised(dpy, m->barwin);
     XSetClassHint(dpy, m->barwin, &ch);
+    if (onebar)
+      m->showbar = 0;
   }
 }
 
@@ -2743,7 +2785,7 @@ updatestatus(void)
 {
   const Block* block;
 
-  char statusbar[LENGTH(blocks)][50] = {0};  
+  char statusbar[LENGTH(blocks)][50] = {0}; // 
   for(int i = 0; i < LENGTH(blocks); i++)
   {
     block = blocks + i;
@@ -2751,11 +2793,15 @@ updatestatus(void)
     char *cmd = block->command;
     FILE *cmdf = popen(cmd,"r");
     if (!cmdf)
-      return;
+      continue;
     char c;
     int j = strlen(block->icon);
-    while((c = fgetc(cmdf)) != EOF)
+    do{
+      c = fgetc(cmdf);
+      if( feof(cmdf) )
+         break;
       statusbar[i][j++] = c;
+    } while(1);
     if (--j)
       statusbar[i][j++] = '\xf0';
     statusbar[i][j++] = '\0';
@@ -3067,6 +3113,7 @@ systraytomon(Monitor *m) {
     return mons;
   return t;
 }
+
 void
 xrdb(const Arg *arg)
 {

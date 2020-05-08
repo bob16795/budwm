@@ -17,13 +17,13 @@ options:
 	@echo "CC       = ${CC}"
 
 .c.o:
-	${CC} -c ${CFLAGS} $<
+	${CC} -g -c ${CFLAGS} $<
 
 ${OBJ}: config.mk config.h bud.c
 ${IPCOBJ}: config.mk config.h
 
 budwm: ${OBJ}
-	${CC} -o $@ ${OBJ} ${LDFLAGS}
+	${CC} -g -o $@ ${OBJ} ${LDFLAGS}
 	
 budwmipc: ${IPCOBJ} 
 	${CC} -o $@ ${IPCOBJ} ${LDFLAGS}

@@ -5,8 +5,8 @@
 
 #ifndef IPC
 /* appearance */
-static const char *fonts[]          = { "Delugia Nerd Font:size=10"};
-static const unsigned int borderpx  = 2;        /* border pixel of windows */
+static const char *fonts[]          = { "CaskaydiaCove Nerd Font Mono:size=12"};
+static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
@@ -19,9 +19,14 @@ static const int gappsi             = 15;       /* inner gaps */
 static const int gappso             = 20;       /* outer gaps */
 static const int frameicons         = 1;        /* show container icons in frame */
 static const int frametabs          = 1;        /* show container icons in frame */
+static const int onebar             = 1;        /* show only the bar on the main monitor*/
 static int absplit                  = 916;
 static int acsplit                  = 170;
 static int bdsplit                  = 300;
+static int amode                    = 1;        /* default mode for contsainer a 0: stack, 1: horiz, 2: vertical*/
+static int bmode                    = 1;        /* default mode for contsainer b 0: stack, 1: horiz, 2: vertical*/
+static int cmode                    = 1;        /* default mode for contsainer c 0: stack, 1: horiz, 2: vertical*/
+static int dmode                    = 1;        /* default mode for contsainer d 0: stack, 1: horiz, 2: vertical*/
 static char normbgcolor[]           = "#222222";
 static char normbordercolor[]       = "#444444";
 static char normfgcolor[]           = "#bbbbbb";
@@ -55,14 +60,14 @@ static const Rule rules[] = {
   { "Sxiv",        NULL,       NULL,       "Pix",        "P",    0,            0,           0,           -1,     2},
   { "mpv",         NULL,       NULL,       "Vid",        "",    0,            0,           0,           -1,     2},
   { "cava",        NULL,       NULL,       "Vis",        "C",    0,            0,           0,           -1,     2},
-  { "Spotify",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     1},
+  { "Spotify",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     3},
   { "ncmpcpp",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     2},
   { "Subl",        NULL,       NULL,       "Code",       "",    0,            0,           0,           -1,     3},
   { "qutebrowser", NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "Surf",        NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "FilesB",      NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     2},
   { "FilesD",      NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     4},
-  { "Lutris",      NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
+  { "Lutris",      NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     2},
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
   { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
   { "Pavucontrol", NULL,       NULL,       "Vol",        "",    0,            0,           0,           -1,     2},
@@ -93,7 +98,7 @@ static void bigB(const Arg *arg);
 static void smallB(const Arg *arg);
 
 /* key definitions */
-#define MODKEY Mod4Mask
+#define MODKEY Mod1Mask
 #define TAGKEYS(KEY,TAG) \
   { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
   { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -115,14 +120,17 @@ static Key keys[] = {
   { MODKEY,                       XK_d,      spawn,           {.v = runcmd } },
   { MODKEY|ShiftMask,             XK_d,      spawn,           {.v = druncmd } },
   { MODKEY,                       XK_v,      spawn,           TERMCMD("cava", "cava") },
-  { MODKEY,                       XK_Return, spawn,           TERMCMD("stA", "/home/john/.nimble/bin/nshell") },
-  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("stB", "/home/john/.nimble/bin/nshell") },
-  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("st", "/home/john/.nimble/bin/nshell") },
-  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("stC", "/home/john/.nimble/bin/nshell") },
+  { MODKEY,                       XK_Return, spawn,           TERMCMD("stA", "/usr/bin/zsh") },
+  { MODKEY|ShiftMask,             XK_Return, spawn,           TERMCMD("stB", "/usr/bin/zsh") },
+  { MODKEY|ControlMask,           XK_Return, spawn,           TERMCMD("st", "/usr/bin/zsh") },
+  { MODKEY|ShiftMask,             XK_c,      spawn,           TERMCMD("stC", "/usr/bin/zsh") },
   { MODKEY,                       XK_i,      spawn,           TERMCMD("htop", "/usr/bin/htop") },
   { MODKEY,                       XK_e,      spawn,           TERMCMD("neomutt", "/usr/bin/neomutt") },
   { MODKEY,                       XK_t,      spawn,           SHCMD("mondocontrol menu") },
   { MODKEY,                       XK_m,      spawn,           TERMCMD("ncmpcpp", "/usr/bin/ncmpcpp") },
+  { MODKEY|ShiftMask,             XK_n,      setmode,         {.i = 3} }, // vertical mode
+  { MODKEY,                       XK_n,      setmode,         {.i = 2} }, // horizontal mode
+  { MODKEY|ShiftMask,             XK_m,      setmode,         {.i = 1} }, // normal mode
   { MODKEY|ShiftMask,             XK_b,      spawn,           SHCMD("sxiv -b -s h ~/pix/wallpapers/currentwall") },
   { MODKEY|ShiftMask,             XK_w,      spawn,           SHCMD("bwpcontrol menu") },
   //{ MODKEY,                       XK_w,      spawn,           SHCMD("vivaldi-stable --debug-packed-apps --silent-debugger-extension-api") },
@@ -157,8 +165,8 @@ static Key keys[] = {
   { ShiftMask,                    0x1008FF11,spawn,           SHCMD("pamixer -d 10") },
   { 0,                            0x1008FF13,spawn,           SHCMD("pamixer -i 5") },
   { ShiftMask,                    0x1008FF13,spawn,           SHCMD("pamixer -i 10") },
-  { 0,                            0x1008FF31,spawn,           SHCMD("mediacontrol toggle") },
-  { 0,                            0x1008ff14,spawn,           SHCMD("mediacontrol toggle") },
+  { 0,                            0x1008FF31,spawn,           SHCMD("mediacontrol playpause") },
+  { 0,                            0x1008ff14,spawn,           SHCMD("mediacontrol playpause") },
   { 0,                            0x1008ff17,spawn,           SHCMD("mediacontrol next") },
   { 0,                            0x1008ff16,spawn,           SHCMD("mediacontrol prev") },
   TAGKEYS(                        XK_F1,                      0)
@@ -201,10 +209,10 @@ static const Block blocks[] = {
   {"",    "wswpswitcher"               },
   {"",    "volume"                     },
   {"",    "volume-mic"                 },
-  {"",    "disk /home/john "          },
-  {"",    "battery"                    },
+  {"",    "disk /home "          },
+  //{"",    "battery"                    },
   {"",    "cpu"                        },
-  {"",    "mailbox"                    },
+  //{"",    "mailbox"                    },
   {"",    "bwp-status"                 },
   {"",    "mondo-status"               }
 };
