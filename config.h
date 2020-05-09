@@ -3,10 +3,9 @@
 /* ipc file */
 #define FileName "/tmp/budwm.ipc"
 
-#ifndef IPC
 /* appearance */
-static const char *fonts[]          = { "CaskaydiaCove Nerd Font Mono:size=12"};
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
+static const char *fonts[]          = { "CaskaydiaCove Nerd Font Mono:size=10"};
+static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
@@ -77,6 +76,7 @@ static const Rule rules[] = {
   { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
   { "minecraft-launcher",NULL, NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
   { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        "",    0,            0,           0,           -1,     0},
+  { "Steam",       NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     2},
   { NULL,          "winword.exe",NULL,     "Wrd",        "",    0,            0,           0,           -1,     3},
   { NULL, NULL, "Picture in picture",      "PIP",        "",    0,            0,           0,           -1,     2},
 };
@@ -98,7 +98,7 @@ static void bigB(const Arg *arg);
 static void smallB(const Arg *arg);
 
 /* key definitions */
-#define MODKEY Mod1Mask
+#define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
   { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
   { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -232,4 +232,3 @@ smallB(const Arg *arg) {
   Arg b = {.i = +300};
   setbdsplit(&b);
 }
-#endif

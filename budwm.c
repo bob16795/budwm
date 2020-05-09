@@ -1428,9 +1428,9 @@ manage(Window w, XWindowAttributes *wa)
   c->win = w;
   /* geometry */
   c->x = c->oldx = wa->x;
-  c->y = c->oldy = wa->y;
+  c->y = c->oldy = wa->y - bh;
   c->w = c->oldw = wa->width;
-  c->h = c->oldh = wa->height;
+  c->h = c->oldh = wa->height + bh;
   c->oldbw = wa->border_width;
   c->container = 3;
   if (acsplit > selmon->mh)
@@ -1460,8 +1460,6 @@ manage(Window w, XWindowAttributes *wa)
     c->y = (c->mon->mh - HEIGHT(c)) / 2;
   }
 
-  c->y = c->y + bh;
-  c->h = c->h - bh;
   //wc.border_width = c->bw;
   //XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
   XSetWindowBorder(dpy, c->framewin, scheme[SchemeNorm][ColBorder].pixel);
@@ -2685,28 +2683,31 @@ updateipc(void)
   if (fcntl(fd, F_SETLK, &lock) < 0) /** F_SETLK doesn't block, F_SETLKW does **/
     die("fcntl failed to get lock...");
   else {
-    char str[415]; // 14+1+128+1+256+1+8+1+1+1+1+2
+    char str[425]; // 14+1+128+1+256+1+8+1+1+1+1+10+2
     long rawdata[] = { selmon->tagset[seltags] };
     int i=0;
     while(*rawdata >> (i+1)) i++;
     sprintf(str, "ActiveTag: %d\n", i + 1);
     write(fd, str, strlen(str));
     if (c = selmon->sel) {
-      sprintf(str, "ActiveClient: %s %s %s %c %d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating);
+      long rawdata[] = { c->tags };
+      int tag=0;
+      while(*rawdata >> (tag+1)) tag++;
+      sprintf(str, "ActiveClient;%s;%s;%s;%c;%d;%d;%d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
     } else {
-      sprintf(str, "ActiveClient: None\n");
+      sprintf(str, "ActiveClient;None\n");
     }
     write(fd, str, strlen(str));
     for (m = mons; m; m = m->next){
       char str[42]; // 8+1+10+1+10+1+10+2
-      sprintf(str, "Monitor: %d %dx%d\n", m->num, m->mw, m->mh);
+      sprintf(str, "Monitor;%d;%dx%d\n", m->num, m->mw, m->mh);
       write(fd, str, strlen(str));
       for (c = m->clients; c; c = c->next){
         long rawdata[] = { c->tags };
         int tag=0;
         while(*rawdata >> (tag+1)) tag++;
-        char str[411]; // 9+1+128+1+256+1+8+1+1+1+1+1+1+2
-        sprintf(str, "  Client: %s %s %s %c %d %d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1);
+        char str[421]; // 9+1+128+1+256+1+8+1+1+1+1+1+1+10+2
+        sprintf(str, "  Client;%s;%s;%s;%c;%d;%d;%d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
         write(fd, str, strlen(str));
       }
     }
