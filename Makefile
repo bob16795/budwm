@@ -5,10 +5,8 @@ include config.mk
 
 SRC = drw.c budwm.c util.c
 OBJ = ${SRC:.c=.o}
-IPCSRC = budwmipc.c
-IPCOBJ = ${IPCSRC:.c=.o}
 
-all: options budwm budwmipc
+all: options budwm
 
 options:
 	@echo budwm build options:
@@ -20,14 +18,10 @@ options:
 	${CC} -g -c ${CFLAGS} $<
 
 ${OBJ}: config.mk config.h bud.c
-${IPCOBJ}: config.mk config.h
 
 budwm: ${OBJ}
 	${CC} -g -o $@ ${OBJ} ${LDFLAGS}
 	
-budwmipc: ${IPCOBJ} 
-	${CC} -o $@ ${IPCOBJ} ${LDFLAGS}
-
 clean:
 	rm -f budwm ${OBJ} budwm-${VERSION}.tar.gz
 

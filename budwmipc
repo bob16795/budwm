@@ -1,0 +1,3 @@
+#!/bin/bash
+filename='/tmp/budwm.ipc'
+cat $filename
