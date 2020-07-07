@@ -1,0 +1,79 @@
+#!/bin/bash
+
+_help_msg="$(cat << 'EOB'
+budwmipc - Budwm ipc communicator
+
+Usage
+-----
+budwmipc
+EOB
+)"
+
+main() {
+  [[ "${__o[search]}" != "" ]] || { __o[search]="";__o[searchfield]=9; }
+  line=$(get_data \
+    | awk -v "searchfield=${__o[searchfield]}" \
+          -v "search=${__o[search]}" -F';' \
+          '$searchfield == search {print $0}')
+  
+  if ((__o[getfocus] == 1)); then
+    line=$(get_focus)
+  fi
+
+  out=$(echo "$line" \
+    | awk -v "getfield=${__o[getfield]}" -F';' \
+          '{print $getfield}')
+
+  if ((__o[focus] == 1)); then
+    xdo activate -r $out
+  fi
+
+  echo "$out"
+}
+
+get_data() {
+  sed '/^  Client/!d;s/^  //' /tmp/budwm.ipc
+}
+
+get_focus() {
+  cat /tmp/budwm.ipc | grep "ActiveClient;"
+}
+
+declare -A __o
+eval set -- "$(getopt --name "budwmipc" \
+  --options "i:In:Nt:Tx:Xc:Cl:La:AfF" \
+  --longoptions "id:,getid,name:,getname,title:,gettitle,icon:,geticon,container:,getcontainerm,focus" \
+  -- "$@"
+)"
+
+__o[getfield]=0
+__o[searchfield]=0
+
+while true; do
+  case "$1" in
+    --name        | -n ) __o[search]="${2:-}"; __o[searchfield]=2; shift ;;
+    --getname     | -N ) __o[getfield]=2 ;;
+    --title       | -t ) __o[search]="${2:-}"; __o[searchfield]=3; shift ;;
+    --gettitle    | -T ) __o[getfield]=3 ;;
+    --icon        | -x ) __o[search]="${2:-}"; __o[searchfield]=4; shift ;;
+    --geticon     | -X ) __o[getfield]=4 ;;
+    --container   | -c ) __o[search]="${2:-}"; __o[searchfield]=5; shift ;;
+    --getcontainer| -C ) __o[getfield]=5 ;;
+    --floating    | -l ) __o[search]="${2:-}"; __o[searchfield]=6; shift ;;
+    --getfloating | -L ) __o[getfield]=6 ;;
+    --tag         | -a ) __o[search]="${2:-}"; __o[searchfield]=7; shift ;;
+    --gettag      | -A ) __o[getfield]=7 ;;
+    --id          | -i ) __o[search]="${2:-}"; __o[searchfield]=8; shift ;;
+    --getid       | -I ) __o[getfield]=8 ;;
+    --focus       | -f ) __o[focus]=1; __o[getfield]=8; shift ;;
+    --focus       | -F ) __o[getfocus]=1 ;;
+    -- ) shift ; break ;;
+    *  ) break ;;
+  esac
+  shift
+done
+
+[[ ${__lastarg:="${!#:-}"} =~ ^--$|${0}$ ]] \
+  && __lastarg="" 
+
+main "${@:-}"
