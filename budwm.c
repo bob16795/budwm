@@ -287,6 +287,7 @@ static Monitor *systraytomon(Monitor *m);
 static void tag(const Arg *arg);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void toggleicon(const int id);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void setmode(const Arg *arg);
@@ -355,6 +356,7 @@ static Drw *drw;
 static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
 static unsigned int seltags;
+static int baricons;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -718,8 +720,10 @@ configure(Client *c)
   ce.display = dpy;
   ce.event = c->win;
   ce.window = c->win;
-  ce.x = 0;
-  ce.y = 0;
+  ce.x = c->x + c->bw;
+  ce.y = c->y + c->bw;
+  if (c->isframe)
+    ce.y += bh;
   ce.width = c->w;
   ce.height = c->h;
   if (c->isfloating)
@@ -921,15 +925,15 @@ drawbar(Monitor *m)
   char *t ;
   t = strtok(r, "\xf0");
   while(t) {
-    if (t[0] == '\xf1')
+    if (t[0] == '\xf2')
       drw_setscheme(drw, scheme[SchemeNorm]);
     if (x != TEXTW(m->ltsymbol)) {
       w = TEXTW(" "); /* 2px right padding */
       sw += w;
       drw_text(drw, m->ww - sw - stw, 0, w, bh, 0, " ", 0);
     }
-    if (t[0] != '\xf1') drw_setscheme(drw, scheme[SchemeSel]);
-    if (t[0] == '\xf1') {
+    if (t[0] != '\xf2') drw_setscheme(drw, scheme[SchemeSel]);
+    if (t[0] == '\xf2') {
       w = TEXTW(&t[1]); /* 2px right padding */
       sw += w;
       drw_text(drw, m->ww - sw - stw, 0, w, bh, 0, &t[1], 0);
@@ -946,15 +950,15 @@ drawbar(Monitor *m)
   x += w;
   t = strtok(l, "\xf0");
   while(t) {
-    if (t[0] == '\xf1') drw_setscheme(drw, scheme[SchemeNorm]);
+    if (t[0] == '\xf2') drw_setscheme(drw, scheme[SchemeNorm]);
     if (x != TEXTW(m->ltsymbol)) {
       w = TEXTW(" "); /* 2px right padding */
       drw_text(drw, x, 0, w, bh, 0, " ", 0);
       x += w;
     }
-    if (t[0] != '\xf1')
+    if (t[0] != '\xf2')
     drw_setscheme(drw, scheme[SchemeSel]);
-    if (t[0] == '\xf1') {
+    if (t[0] == '\xf2') {
       w = TEXTW(&t[1]); /* 2px right padding */
       drw_text(drw, x, 0, w, bh, 0, &t[1], 0);
     } else {
@@ -969,7 +973,8 @@ drawbar(Monitor *m)
     int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
     drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
   }else {
-    drw_rect(drw, x, 0, w, bh, 1, 1);
+    int mid = (m->ww - TEXTW("Desktop")) / 2 - x;
+    drw_text(drw, x, 0, w, bh, mid, "Desktop", 0);
   }
   drw_map(drw, m->barwin, 0, 0, m->ww - stw, bh);
 }
@@ -1484,6 +1489,7 @@ manage(Window w, XWindowAttributes *wa)
   c->mon->sel = c;
   arrange(c->mon);
   XMapWindow(dpy, c->win);
+  resize(c, c->x, c->y, c->w, c->h, False);
   drawframe(c);
   focus(NULL);
 }
@@ -1833,7 +1839,7 @@ clickbar(const Arg *arg)
     if (t[0] > '\xf0')
       t = &t[1];
     size += TEXTW(t);
-    //size += TEXTW(" ");
+    size += TEXTW(" ");
     if ( ev.xbutton.x > (selmon->ww -  size)) {
       q = 1;
       break;
@@ -1842,12 +1848,14 @@ clickbar(const Arg *arg)
     id ++;
   }
   if (q == 0) {
+    //id ++;
     size = 0;
     t = strtok(l, "\xf0");
     while(t) {
       if (t[0] > '\xf0')
         t = &t[1];
       size += TEXTW(t);
+      size += TEXTW(" ");
       if ( ev.xbutton.x < (selmon->mx + TEXTW(selmon->ltsymbol) + size)){
         q = 1;
         break;
@@ -1857,9 +1865,13 @@ clickbar(const Arg *arg)
     }
   }
   if (q == 1){
-    Arg cmd = {.v = (const char*[]){(blocks[id].command), arg->v, NULL}};
-    spawn(&cmd);
-    updatestatus();
+    if (strcmp("icon", arg->v) == 0)
+      toggleicon(id);
+    else{
+      Arg cmd = {.v = (const char*[]){(blocks[id].command), arg->v, NULL}};
+      spawn(&cmd);
+      updatestatus();
+    }
   }
 }
 
@@ -2206,6 +2218,7 @@ setup(void)
   updatesystray();
   /* init bars */
   updatebars();
+  baricons = defbaricons;
   updatestatus();
   if (enableipc)
     updateipc();
@@ -2363,6 +2376,8 @@ togglefloating(const Arg *arg)
     selmon->sel->container = 5;
   } else {
     selmon->sel->container = selmon->sel->oldc;
+    if (selmon->sel->container < 1 || selmon->sel->container > 4)
+      selmon->sel->container = 3;
     if (selmon->sel->container == 4 && bdsplit > selmon->mh)
       selmon->sel->container = 2;
     if (selmon->sel->container == 3 && bdsplit > selmon->mh)
@@ -2373,6 +2388,15 @@ togglefloating(const Arg *arg)
       selmon->sel->container = 1;
   }
   arrange(selmon);
+}
+
+void
+toggleicon(const int id){
+  int cur = (baricons >> id) & 1;
+  baricons = baricons & ((1<<17 - 1)-(1 << id));
+  baricons += (!cur) << id;
+  updatestatus();
+  updateipc();
 }
 
 void
@@ -2689,6 +2713,8 @@ updateipc(void)
     while(*rawdata >> (i+1)) i++;
     sprintf(str, "ActiveTag: %d\n", i + 1);
     write(fd, str, strlen(str));
+    sprintf(str, "Icons: %d\n", baricons);
+    write(fd, str, strlen(str));
     if (c = selmon->sel) {
       long rawdata[] = { c->tags };
       int tag=0;
@@ -2791,8 +2817,13 @@ updatestatus(void)
   {
     block = blocks + i;
     strcpy(statusbar[i], block->icon);
-    char *cmd = block->command;
-    FILE *cmdf = popen(cmd,"r");
+    char *cmd = calloc(6+strlen(block->command), sizeof(char)), *ico = calloc(6, sizeof(char));
+    strcpy(cmd, block->command);
+    strcpy(ico, " icon");
+    if ((baricons >> i) & 1)
+      strcat(cmd, ico);
+    printf(cmd);
+    FILE *cmdf = popen(cmd, "r");
     if (!cmdf)
       continue;
     char c;

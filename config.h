@@ -26,6 +26,8 @@ static int amode                    = 1;        /* default mode for contsainer a
 static int bmode                    = 1;        /* default mode for contsainer b 0: stack, 1: horiz, 2: vertical*/
 static int cmode                    = 1;        /* default mode for contsainer c 0: stack, 1: horiz, 2: vertical*/
 static int dmode                    = 1;        /* default mode for contsainer d 0: stack, 1: horiz, 2: vertical*/
+static const int swallowfloating    = 0;
+static int defbaricons              = 1536;
 static char normbgcolor[]           = "#222222";
 static char normbordercolor[]       = "#444444";
 static char normfgcolor[]           = "#bbbbbb";
@@ -49,36 +51,37 @@ static const Rule rules[] = {
    *  WM_CLASS(STRING) = instance, class
    *  WM_NAME(STRING) = title
    */
-  /* class         instance    title       Force name    icon    tags mask     iscentered   isfloating   monitor container*/
-  { NULL,          NULL,       NULL,       NULL,         0,      0,            1,           1,           -1,     3},
-  { "stA",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     1},
-  { "stB",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     2},
-  { "stC",         NULL,       NULL,       "Term",       "",    0,            0,           0,           -1,     3},
-  { "neomutt",     NULL,       NULL,       "Mail",       "✉",    0,            0,           0,           -1,     3},
-  { "htop",        NULL,       NULL,       "Tasks",      "",    0,            0,           0,           -1,     1},
-  { "Sxiv",        NULL,       NULL,       "Pix",        "P",    0,            0,           0,           -1,     2},
-  { "mpv",         NULL,       NULL,       "Vid",        "",    0,            0,           0,           -1,     2},
-  { "cava",        NULL,       NULL,       "Vis",        "C",    0,            0,           0,           -1,     2},
-  { "Spotify",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     3},
-  { "ncmpcpp",     NULL,       NULL,       "Mus",        "M",    0,            0,           0,           -1,     2},
-  { "Subl",        NULL,       NULL,       "Code",       "",    0,            0,           0,           -1,     3},
-  { "qutebrowser", NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
-  { "Surf",        NULL,       NULL,       "Web",        "",    0,            0,           0,           -1,     3},
-  { "FilesB",      NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     2},
-  { "FilesD",      NULL,       NULL,       "Files",      "",    0,            0,           0,           -1,     4},
-  { "Lutris",      NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     2},
-  { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
-  { "Zathura",     NULL,       NULL,       "PDF",        "",    0,            0,           0,           -1,     3},
-  { "Pavucontrol", NULL,       NULL,       "Vol",        "",    0,            0,           0,           -1,     2},
-  { "XEyes",       NULL,       NULL,       "EYES",       "I",    0,            0,           0,           -1,     2},
-  { NULL,  "libreoffice",      NULL,       "Wrd",        "",    0,            0,           0,           -1,     3},
-  { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
-  { "Vivaldi-stable",NULL,     NULL,       "Web",        "",    0,            0,           0,           -1,     3},
-  { "minecraft-launcher",NULL, NULL,       "Gam",        "",    0,            0,           0,           -1,     3},
-  { "Minecraft 1.14.4",NULL,   NULL,       "Gam",        "",    0,            0,           0,           -1,     0},
-  { "Steam",       NULL,       NULL,       "Gam",        "",    0,            0,           0,           -1,     2},
-  { NULL,          "winword.exe",NULL,     "Wrd",        "",    0,            0,           0,           -1,     3},
-  { NULL, NULL, "Picture in picture",      "PIP",        "",    0,            0,           0,           -1,     2},
+  /* class         instance    title   Force name    icon    tags mask     iscentered   isfloating   isterm noswallow monitor container*/
+  { NULL,          NULL,       NULL,   NULL,         0,      0,            1,           1,           0,     0,        -1,     3},
+  { "stA",         NULL,       NULL,   "Term",       "",    0,            0,           0,           1,     0,        -1,     1},
+  { "stB",         NULL,       NULL,   "Term",       "",    0,            0,           0,           1,     0,        -1,     2},
+  { "stC",         NULL,       NULL,   "Term",       "",    0,            0,           0,           1,     0,        -1,     3},
+  { "neomutt",     NULL,       NULL,   "Mail",       "✉",    0,            0,           0,           0,     0,        -1,     3},
+  { "htop",        NULL,       NULL,   "Tasks",      "",    0,            0,           0,           0,     0,        -1,     1},
+  { "Sxiv",        NULL,       NULL,   "Pix",        "P",    0,            0,           0,           0,     0,        -1,     2},
+  { "mpv",         NULL,       NULL,   "Vid",        "",    0,            0,           0,           0,     0,        -1,     2},
+  { "cava",        NULL,       NULL,   "Vis",        "C",    0,            0,           0,           0,     0,        -1,     2},
+  { "Spotify",     NULL,       NULL,   "Mus",        "M",    0,            0,           0,           0,     0,        -1,     3},
+  { "ncmpcpp",     NULL,       NULL,   "Mus",        "M",    0,            0,           0,           0,     0,        -1,     2},
+  { "Subl",        NULL,       NULL,   "Code",       "",    0,            0,           0,           0,     0,        -1,     3},
+  { "qutebrowser", NULL,       NULL,   "Web",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Surf",        NULL,       NULL,   "Web",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "FilesB",      NULL,       NULL,   "Files",      "",    0,            0,           0,           0,     0,        -1,     2},
+  { "FilesD",      NULL,       NULL,   "Files",      "",    0,            0,           0,           0,     0,        -1,     4},
+  { "Lutris",      NULL,       NULL,   "Gam",        "",    0,            0,           0,           0,     0,        -1,     2},
+  { "Zathura",     NULL,       NULL,   "PDF",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Zathura",     NULL,       NULL,   "PDF",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Pavucontrol", NULL,       NULL,   "Vol",        "",    0,            0,           0,           0,     0,        -1,     2},
+  { "XEyes",       NULL,       NULL,   "EYES",       "I",    0,            0,           0,           0,     0,        -1,     2},
+  { NULL,  "libreoffice",      NULL,   "Wrd",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Vivaldi-stable",NULL,     NULL,   "Web",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Vivaldi-stable",NULL,     NULL,   "Web",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "minecraft-launcher",NULL, NULL,   "Gam",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { "Minecraft 1.14.4",NULL,   NULL,   "Gam",        "",    0,            0,           0,           0,     0,        -1,     0},
+  { "Steam",       NULL,       NULL,   "Gam",        "",    0,            0,           0,           0,     0,        -1,     2},
+  { NULL,          "winword.exe",NULL, "Wrd",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { NULL,          "mspub.exe",NULL,   "Pub",        "",    0,            0,           0,           0,     0,        -1,     3},
+  { NULL, NULL, "Picture in picture",  "PIP",        "",    0,            0,           0,           0,     0,        -1,     2},
 };
 
 /* layout(s) */
@@ -88,8 +91,8 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 static const Layout layouts[] = {
   /* symbol     arrange function */
   {" -⬜- ",     budnogaps },
-  {" -+- ",     budnoogaps},
-  {" [+] ",     bud       },
+  {" -+- ",      budnoogaps},
+  {" [+] ",      bud       },
   {" [⬜] ",     budnoigaps},
   {NULL, NULL}
 };
@@ -111,7 +114,7 @@ static void smallB(const Arg *arg);
 
 /* commands */
 static const char *runcmd[] = { "dmenu_run", NULL };
-static const char *druncmd[] = { "dmenu_run", NULL };
+static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
@@ -133,7 +136,6 @@ static Key keys[] = {
   { MODKEY|ShiftMask,             XK_m,      setmode,         {.i = 1} }, // normal mode
   { MODKEY|ShiftMask,             XK_b,      spawn,           SHCMD("sxiv -b -s h ~/pix/wallpapers/currentwall") },
   { MODKEY|ShiftMask,             XK_w,      spawn,           SHCMD("bwpcontrol menu") },
-  //{ MODKEY,                       XK_w,      spawn,           SHCMD("vivaldi-stable --debug-packed-apps --silent-debugger-extension-api") },
   { MODKEY,                       XK_w,      spawn,           SHCMD("qutebrowser") },
   { MODKEY|ShiftMask,             XK_t,      spawn,           SHCMD("sublaunch -p todo") },
   { MODKEY,                       XK_c,      spawn,           SHCMD("sublaunch -p dox") },
@@ -180,9 +182,12 @@ static Key keys[] = {
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
   /* click                event mask      button          function        argument */
-  { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "0"} },
-  { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "1"} },
+  { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "1"} },
+  { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "3"} },
   { ClkWinTitle,          0,              Button2,        clickbar,       {.v = "2"} },
+  { ClkWinTitle,          ShiftMask,      Button1,        clickbar,       {.v = "icon"} },
+  { ClkWinTitle,          ShiftMask,      Button2,        clickbar,       {.v = "icon"} },
+  { ClkWinTitle,          ShiftMask,      Button3,        clickbar,       {.v = "icon"} },
   { ClkFrameWin,          MODKEY,         Button2,        killclient,     {0} },
   { ClkFrameWin,          MODKEY,         Button1,        0,              {0} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
@@ -203,16 +208,16 @@ static Signal signals[] = {
 
 static const Block blocks[] = {
   /*Icon*//*Command*/ 
-  //{"",    "nameinfo"                   },
+  {"",    "nameinfo"                   },
   {"",    "music"                      },
   {";",   "date +%-I:%M | sed 's/ //'" },
-  {"",    "wswpswitcher"               },
+  //{"",    "wswpswitcher"               },
   {"",    "volume"                     },
   {"",    "volume-mic"                 },
-  {"",    "disk /home "          },
-  //{"",    "battery"                    },
+  {"",    "disk /home "               },
+  {"",    "battery"                    },
   {"",    "cpu"                        },
-  //{"",    "mailbox"                    },
+  {"",    "mailbox"                    },
   {"",    "bwp-status"                 },
   {"",    "mondo-status"               }
 };
