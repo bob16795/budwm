@@ -41,7 +41,7 @@ static char *colors[][3] = {
 };
 
 /* tagging */
-static const char *tags[] = { "F1", "F2", "F3", "F4"};
+static const char *tags[] = { "1", "2", "3", "4"};
 
 /* scratchpad */
 static const unsigned scratchpad_mask = 1u << sizeof tags / sizeof * tags;
@@ -90,16 +90,15 @@ static const int resizehints = 0;    /* 1 means respect size hints in tiled resi
 #include "bud.c"
 static const Layout layouts[] = {
   /* symbol     arrange function */
-  {" --- ",     budnogaps },
+  {" -⬜- ",     budnogaps },
   {" -+- ",      budnoogaps},
   {" [+] ",      bud       },
-  {" [-] ",     budnoigaps},
+  {" [⬜] ",     budnoigaps},
   {NULL, NULL}
 };
 
 static void bigB(const Arg *arg);
 static void smallB(const Arg *arg);
-static void titlemodetoggle(const Arg *arg);
 
 /* key definitions */
 #define MODKEY Mod4Mask
@@ -235,7 +234,6 @@ static Signal signals[] = {
   { 19,           inchsplit,      {.i = +5} },
   { 20,           incvsplit,      {.i = -5} },
   { 21,           incvsplit,      {.i = +5} },
-  { 22,           titlemodetoggle,{0} },
   { 99,           quit,           {0} },
   TAGSIG(1)
   TAGSIG(2)
@@ -273,9 +271,4 @@ smallB(const Arg *arg) {
   setabsplit(&a);
   Arg b = {.i = +300};
   setbdsplit(&b);
-}
-
-void
-titlemodetoggle(const Arg *arg) {
-  titlemode = (titlemode == 0);
 }
