@@ -103,7 +103,7 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMWindowTypeDialog, NetClientList, NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, NetLast };
 enum { Manager, Xembed, XembedInfo, XLast }; /* Xembed atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
-enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkBarIcon,
        ClkFrameWin, ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
 
 typedef union {
@@ -245,7 +245,7 @@ static int getrootptr(int *x, int *y);
 static long getstate(Window w);
 static unsigned int getsystraywidth();
 static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
-static char *gettitle(Client *c);
+static char *gettitle(Monitor *m);
 static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
 static void inchsplit(const Arg *arg);
@@ -579,25 +579,27 @@ buttonpress(XEvent *e)
     if (ev->x < TEXTW(selmon->ltsymbol))
       click = ClkLtSymbol;
     else
-      click = ClkWinTitle;
+      click = ClkBarIcon;
   } else if ((c = wintoclient(ev->window))) {
     click = ClkClientWin;
     int tot = 0;
-    if (ev->y < bh) {
+    if (ev->window == c->framewin) {
       click = ClkFrameWin;
       Client* cb;
-      for (cb = c->mon->clients; cb; cb = cb->next){
-        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating)
-          tot ++;
-      }
-      int w = ((c->w + 2 * c->bw) /tot);
-      int cur = 0;
-      for (cb = c->mon->clients; cb; cb = cb->next){
-        if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating){
-          cur ++;
-          if (ev->x < cur * w ) {
-            c = cb;
-            break;
+      if (!c->isfloating) {
+        for (cb = c->mon->clients; cb; cb = cb->next){
+          if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating)
+            tot ++;
+        }
+        int w = ((c->w + 2 * c->bw) /tot);
+        int cur = 0;
+        for (cb = c->mon->clients; cb; cb = cb->next){
+          if (ISVISIBLE(cb) && cb->container == c->container && !cb->isfloating){
+            cur ++;
+            if (ev->x < cur * w ) {
+              c = cb;
+              break;
+            }
           }
         }
       }
@@ -608,8 +610,16 @@ buttonpress(XEvent *e)
   }
   for (i = 0; i < LENGTH(buttons); i++)
     if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
-    && buttons[i].mask == ev->state)
+    && buttons[i].mask == ev->state) {
       buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+      return;
+    }
+  if (!c)
+    return;
+  focus(c);
+  restack(selmon);
+  XAllowEvents(dpy, ReplayPointer, ev->time);
+  //XSendEvent(dpy, c->win, False, BUTTONMASK, e);
 }
 
 void
@@ -675,8 +685,8 @@ void
 clickbar(const Arg *arg)
 {
   XEvent ev;
-  int q = 0, counter = 0, id = 0, act = 0,size = 0;
-  char sttext[1024], v[1024];
+  int q = 0, id = 0, size = 0;
+  char sttext[1024];
   char *l, *r, *rb;
 
   if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -696,9 +706,11 @@ clickbar(const Arg *arg)
   strcpy(sttext, stext);
   /* draw status first so it can be overdrawn by tags later */
   r = strtok(sttext, ";");
-  rb = r;
+  rb = ecalloc(strlen(r) + 1, sizeof(char));
+  strcpy(rb, r);
   l = strtok(NULL, ";");
   if (!l){
+    l = ecalloc(strlen(r) + 1, sizeof(char));
     strcpy(l, r);
     r = "";
     rb = "";
@@ -709,7 +721,7 @@ clickbar(const Arg *arg)
       t = &t[1];
     size += TEXTW(t);
     size += TEXTW(" ");
-    if ( ev.xbutton.x > (selmon->ww -  size)) {
+    if ( ev.xbutton.x > (selmon->mx + selmon->mw - size)) {
       q = 1;
       break;
     }
@@ -717,7 +729,6 @@ clickbar(const Arg *arg)
     id ++;
   }
   if (q == 0) {
-    //id ++;
     size = 0;
     t = strtok(l, "\xf0");
     while(t) {
@@ -741,6 +752,9 @@ clickbar(const Arg *arg)
       spawn(&cmd);
       updatestatus();
     }
+  }else{
+    titlemode = !titlemode;
+    drawbar(selmon);
   }
 }
 
@@ -1005,7 +1019,7 @@ void
 drawbar(Monitor *m)
 {
   lrpad = 0;
-  int x, w, sw = 0, stw = 0, counter = 0;
+  int x, w, sw = 0, stw = 0;
   char *r, *l;
   char sttext[1024];
 
@@ -1020,6 +1034,7 @@ drawbar(Monitor *m)
   /* draw status first so it can be overdrawn by tags later */
   x = 0;
   if (!l){
+    l = ecalloc(strlen(r) + 1, sizeof(char));
     strcpy(l, r);
     r = "";
   }
@@ -1069,15 +1084,10 @@ drawbar(Monitor *m)
     x += w;
     t = strtok(NULL, "\xf0");
   }
-  char *name = gettitle(selmon->sel);
+  char *name = gettitle(m);
   w = m->ww - sw - x - stw;
-  if (m->sel) {
-    int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
-    drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
-  }else {
-    int mid = (m->ww - TEXTW("Desktop")) / 2 - x;
-    drw_text(drw, x, 0, w, bh, mid, "Desktop", 0);
-  }
+  int mid = (m->ww - TEXTW(name)) / 2 - x;
+  drw_text(drw, x, 0, w, bh, mid, name, 0);
   drw_map(drw, m->barwin, 0, 0, m->ww - stw, bh);
 }
 
@@ -1313,8 +1323,13 @@ focusstack(const Arg *arg)
 
 void
 frame(Client *c){
-  c->framewin = XCreateSimpleWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, scheme[SchemeNorm][ColBg].pixel, scheme[SchemeNorm][ColBg].pixel);
-  XSelectInput(dpy, c->framewin, EnterWindowMask|SubstructureRedirectMask|SubstructureNotifyMask);
+  XSetWindowAttributes at;
+  at.background_pixel = scheme[SchemeNorm][ColBg].pixel;
+  at.background_pixmap = ParentRelative;
+  at.override_redirect = True;
+  at.bit_gravity = StaticGravity;
+  at.event_mask = EnterWindowMask|SubstructureRedirectMask|SubstructureNotifyMask|ExposureMask|VisibilityChangeMask;
+  c->framewin = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
   XAddToSaveSet(dpy, c->win);
   XReparentWindow(dpy, c->win, c->framewin, 0, bh);
   XMapWindow(dpy, c->framewin);
@@ -1382,17 +1397,32 @@ getsystraywidth()
 }
 
 char *
-gettitle(Client *c){
-  if (!c)
-    return "";
+gettitle(Monitor *m){
   char *result = ecalloc(600, sizeof(char));
+  Client *c = m->sel;
   switch (titlemode) {
     case 1:
-      sprintf(result, "%s x:%d y:%d w:%d h:%d", c->name, c->x, c->y, c->w, c->h);
+      if (!c)
+        sprintf(result, "%s x:%d y:%d w:%d h:%d", desktoptext, m->mx, m->my, m->mw, m->mh);
+      else
+        sprintf(result, "%s x:%d y:%d w:%d h:%d", c->name, c->x, c->y, c->w, c->h);
+      break;
     default:
-      sprintf(result, "%s", c->name);
+      if (!c)
+        sprintf(result, "%s", desktoptext);
+      else
+        sprintf(result, "%s", c->name);
   }
-  return result;
+  if (baricon) {
+    char *iresult = ecalloc(600, sizeof(char));
+    if (c)
+      sprintf(iresult, "%s %s", c->icon, result);
+    else
+      sprintf(iresult, "%s %s", desktopicon, result);
+    return iresult;
+  } else {
+    return result;
+  } 
 }
 
 int
@@ -1432,19 +1462,19 @@ grabbuttons(Client *c, int focused)
       XGrabButton(dpy, AnyButton, AnyModifier, c->framewin, False,
         BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     for (i = 0; i < LENGTH(buttons); i++)
-      if (buttons[i].click == ClkClientWin)
+      if (buttons[i].click == ClkFrameWin) {
+        for (j = 0; j < LENGTH(modifiers); j++)
+          XGrabButton(dpy, buttons[i].button,
+            buttons[i].mask | modifiers[j],
+            c->framewin, False, BUTTONMASK,
+            GrabModeSync, GrabModeSync, None, None);
+      } else if (buttons[i].click == ClkClientWin) {
         for (j = 0; j < LENGTH(modifiers); j++)
           XGrabButton(dpy, buttons[i].button,
             buttons[i].mask | modifiers[j],
             c->win, False, BUTTONMASK,
             GrabModeAsync, GrabModeSync, None, None);
-    for (i = 0; i < LENGTH(buttons); i++)
-      if (buttons[i].click == ClkFrameWin)
-        for (j = 0; j < LENGTH(modifiers); j++)
-          XGrabButton(dpy, buttons[i].button,
-            buttons[i].mask | modifiers[j],
-            c->framewin, False, BUTTONMASK,
-            GrabModeAsync, GrabModeSync, None, None);
+      }
   }
 }
 
@@ -1588,7 +1618,6 @@ manage(Window w, XWindowAttributes *wa)
 {
   Client *c, *t = NULL, *term = NULL;
   Window trans = None;
-  XWindowChanges wc;
 
   c = ecalloc(1, sizeof(Client));
   c->win = w;
@@ -1626,6 +1655,8 @@ manage(Window w, XWindowAttributes *wa)
   if(c->iscentered) {
     c->x = (c->mon->mw - WIDTH(c)) / 2;
     c->y = (c->mon->mh - HEIGHT(c)) / 2;
+    c->x += c->mon->mx;
+    c->y += c->mon->my;
   }
 
   //wc.border_width = c->bw;
@@ -2202,7 +2233,7 @@ setlayout(const Arg *arg)
     selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag] ^= 1;
   if (arg && arg->v)
     selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] = (Layout *)arg->v;
-    selmon->lt[selmon->sellt] = (Layout *)arg->v;
+  selmon->lt[selmon->sellt] = (Layout *)arg->v;
   strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
   if (selmon->sel)
     arrange(selmon);
@@ -2462,7 +2493,6 @@ void
 togglebar(const Arg *arg)
 {
   Monitor *m = selmon;
-  int n;
   if (onebar)
     m = systraytomon(selmon);
   m->showbar = m->pertag->showbars[m->pertag->curtag] = !m->showbar;
@@ -2514,7 +2544,7 @@ togglefloating(const Arg *arg)
 void
 toggleicon(const int id){
   int cur = (baricons >> id) & 1;
-  baricons = baricons & ((1<<17 - 1)-(1 << id));
+  baricons = baricons & ((131071)-(1 << id));
   baricons += (!cur) << id;
   updatestatus();
   updateipc();
@@ -2857,11 +2887,11 @@ updateipc(void)
     write(fd, str, strlen(str));
     sprintf(str, "Icons: %d\n", baricons);
     write(fd, str, strlen(str));
-    if (c = selmon->sel) {
+    if ((c = selmon->sel)) {
       long rawdata[] = { c->tags };
       int tag=0;
       while(*rawdata >> (tag+1)) tag++;
-      sprintf(str, "ActiveClient;%s;%s;%s;%c;%d;%d;%d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
+      sprintf(str, "ActiveClient;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
     } else {
       sprintf(str, "ActiveClient;None\n");
     }
@@ -2870,12 +2900,14 @@ updateipc(void)
       char str[42]; // 8+1+10+1+10+1+10+2
       sprintf(str, "Monitor;%d;%dx%d\n", m->num, m->mw, m->mh);
       write(fd, str, strlen(str));
+      sprintf(str, "  CurTitle: %s\n", gettitle(m));
+      write(fd, str, strlen(str));
       for (c = m->clients; c; c = c->next){
         long rawdata[] = { c->tags };
         int tag=0;
         while(*rawdata >> (tag+1)) tag++;
         char str[421]; // 9+1+128+1+256+1+8+1+1+1+1+1+1+10+2
-        sprintf(str, "  Client;%s;%s;%s;%c;%d;%d;%d\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
+        sprintf(str, "  Client;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
         write(fd, str, strlen(str));
       }
     }

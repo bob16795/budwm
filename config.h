@@ -18,6 +18,7 @@ static const int gappsi             = 15;       /* inner gaps */
 static const int gappso             = 20;       /* outer gaps */
 static const int frameicons         = 1;        /* show container icons in frame */
 static const int frametabs          = 1;        /* show container icons in frame */
+static const int baricon            = 1;
 static const int onebar             = 1;        /* show only the bar on the main monitor*/
 static int absplit                  = 916;
 static int acsplit                  = 170;
@@ -27,13 +28,15 @@ static int bmode                    = 1;        /* default mode for contsainer b
 static int cmode                    = 1;        /* default mode for contsainer c 0: stack, 1: horiz, 2: vertical*/
 static int dmode                    = 1;        /* default mode for contsainer d 0: stack, 1: horiz, 2: vertical*/
 static const int swallowfloating    = 0;
-static int defbaricons              = 1536;
+static int defbaricons              = 3072;
 static char normbgcolor[]           = "#222222";
 static char normbordercolor[]       = "#444444";
 static char normfgcolor[]           = "#bbbbbb";
 static char selfgcolor[]            = "#eeeeee";
 static char selbordercolor[]        = "#005577";
 static char selbgcolor[]            = "#005577";
+static const char *desktoptext      = "Desktop";
+static const char *desktopicon      = "";
 static char *colors[][3] = {
   /*               fg           bg           border   */
   [SchemeNorm] = { normfgcolor, normbgcolor, normbordercolor },
@@ -57,10 +60,11 @@ static const Rule rules[] = {
   { "stB",         NULL,       NULL,   "Term",       "",    0,            0,           0,           1,     0,        -1,     2},
   { "stC",         NULL,       NULL,   "Term",       "",    0,            0,           0,           1,     0,        -1,     3},
   { "neomutt",     NULL,       NULL,   "Mail",       "✉",    0,            0,           0,           0,     0,        -1,     3},
+  { "Dragon",      NULL,       NULL,   "Drag",       "^",    0,            1,           0,           1,     1,        -1,     1},
   { "htop",        NULL,       NULL,   "Tasks",      "",    0,            0,           0,           0,     0,        -1,     1},
   { "Sxiv",        NULL,       NULL,   "Pix",        "P",    0,            0,           0,           0,     0,        -1,     2},
   { "mpv",         NULL,       NULL,   "Vid",        "",    0,            0,           0,           0,     0,        -1,     2},
-  { "cava",        NULL,       NULL,   "Vis",        "C",    0,            0,           0,           0,     0,        -1,     2},
+  { "cava",        NULL,       NULL,   "Vis",        "C",    0,            0,           0,           0,     0,        -1,     4},
   { "Spotify",     NULL,       NULL,   "Mus",        "M",    0,            0,           0,           0,     0,        -1,     3},
   { "ncmpcpp",     NULL,       NULL,   "Mus",        "M",    0,            0,           0,           0,     0,        -1,     2},
   { "Subl",        NULL,       NULL,   "Code",       "",    0,            0,           0,           0,     0,        -1,     3},
@@ -114,8 +118,8 @@ static void titlemodetoggle(const Arg *arg);
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/local/bin/st", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-static const char *runcmd[] = { "dmenu_run", NULL };
-static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
+//static const char *runcmd[] = { "dmenu_run", NULL };
+//static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
@@ -188,14 +192,15 @@ static Key keys[] = {
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
   /* click                event mask      button          function        argument */
-  { ClkWinTitle,          0,              Button1,        clickbar,       {.v = "1"} },
-  { ClkWinTitle,          0,              Button3,        clickbar,       {.v = "3"} },
-  { ClkWinTitle,          0,              Button2,        clickbar,       {.v = "2"} },
-  { ClkWinTitle,          ShiftMask,      Button1,        clickbar,       {.v = "icon"} },
-  { ClkWinTitle,          ShiftMask,      Button2,        clickbar,       {.v = "icon"} },
-  { ClkWinTitle,          ShiftMask,      Button3,        clickbar,       {.v = "icon"} },
-  { ClkFrameWin,          MODKEY,         Button2,        killclient,     {0} },
-  { ClkFrameWin,          MODKEY,         Button1,        0,              {0} },
+  { ClkBarIcon,           0,              Button1,        clickbar,       {.v = "1"} },
+  { ClkBarIcon,           0,              Button3,        clickbar,       {.v = "3"} },
+  { ClkBarIcon,           0,              Button2,        clickbar,       {.v = "2"} },
+  { ClkBarIcon,           ShiftMask,      Button1,        clickbar,       {.v = "icon"} },
+  { ClkBarIcon,           ShiftMask,      Button2,        clickbar,       {.v = "icon"} },
+  { ClkBarIcon,           ShiftMask,      Button3,        clickbar,       {.v = "icon"} },
+  { ClkFrameWin,          0,              Button1,        movemouse,      {0} },
+  { ClkFrameWin,          ShiftMask,      Button2,        killclient,     {0} },
+  { ClkFrameWin,          0,              Button3,        resizemouse,    {0} },
   { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
   { ClkLtSymbol,          0,              Button1,        cyclelayout,    {.i = +1 } },
   { ClkLtSymbol,          0,              Button3,        cyclelayout,    {.i = -1 } },
@@ -237,6 +242,7 @@ static Signal signals[] = {
   { 21,           incvsplit,      {.i = +5} },
   { 22,           titlemodetoggle,{0} },
   { 99,           quit,           {0} },
+  TAGSIG(0)
   TAGSIG(1)
   TAGSIG(2)
   TAGSIG(3)
@@ -248,7 +254,7 @@ static const Block blocks[] = {
   {"",    "nameinfo"                   },
   {"",    "music"                      },
   {";",   "date +%-I:%M | sed 's/ //'" },
-  //{"",    "wswpswitcher"               },
+  {"",    "wswpswitcher"               },
   {"",    "volume"                     },
   {"",    "volume-mic"                 },
   {"",    "disk /home "               },
@@ -277,5 +283,6 @@ smallB(const Arg *arg) {
 
 void
 titlemodetoggle(const Arg *arg) {
-  titlemode = (titlemode == 0);
+  titlemode = (titlemode == 0) ? 1: 0;
+  drawbar(selmon);
 }
