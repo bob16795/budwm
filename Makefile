@@ -46,6 +46,7 @@ install: all
 	mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	sed "s/VERSION/${VERSION}/g" < budwm.1 > ${DESTDIR}${MANPREFIX}/man1/budwm.1
 	chmod 644 ${DESTDIR}${MANPREFIX}/man1/budwm.1
+	touch /tmp/budwm.ipc # TODO: replace with c
 
 uninstall:
 	rm -f ${DESTDIR}${PREFIX}/bin/budwm\
