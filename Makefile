@@ -19,6 +19,10 @@ options:
 
 ${OBJ}: config.mk config.h bud.c
 
+config.h:
+	@echo creating $@ from config.def.h
+	@cp config.def.h $@
+
 budwm: ${OBJ}
 	${CC} -g -o $@ ${OBJ} ${LDFLAGS}
 	

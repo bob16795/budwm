@@ -583,7 +583,7 @@ buttonpress(XEvent *e)
   } else if ((c = wintoclient(ev->window))) {
     click = ClkClientWin;
     int tot = 0;
-    if (ev->window == c->framewin) {
+    if (ev->y < bh) {
       click = ClkFrameWin;
       Client* cb;
       if (!c->isfloating) {
