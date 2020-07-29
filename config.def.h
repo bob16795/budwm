@@ -118,8 +118,8 @@ static void titlemodetoggle(const Arg *arg);
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/local/bin/st", "-T", name, "-c", name, "-e", cmd, NULL } }
 
 /* commands */
-//static const char *runcmd[] = { "dmenu_run", NULL };
-//static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
+static const char *runcmd[] = { "dmenu_run", NULL };
+static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
@@ -159,7 +159,7 @@ static Key keys[] = {
   { MODKEY|ShiftMask,             XK_Tab,    focusstack,      {.i = -1 } },
   { MODKEY,                       XK_q,      killclient,      {0} },
   { MODKEY|ShiftMask,             XK_q,      killclient,      {0} },
-  { modkey,                       xk_space,  togglefloating,  {0} },
+  { modkey,                       XK_space,  togglefloating,  {0} },
   { MODKEY|ShiftMask,             XK_1,      setcontainer,    {.f = 1 } },
   { MODKEY|ShiftMask,             XK_2,      setcontainer,    {.f = 2 } },
   { MODKEY|ShiftMask,             XK_3,      setcontainer,    {.f = 3 } },
