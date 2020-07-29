@@ -34,4 +34,4 @@ and (re)compiling the source code.
 
 TODO
 -------------
-re add config.def
+ - re document config

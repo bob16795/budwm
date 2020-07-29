@@ -159,7 +159,7 @@ static Key keys[] = {
   { MODKEY|ShiftMask,             XK_Tab,    focusstack,      {.i = -1 } },
   { MODKEY,                       XK_q,      killclient,      {0} },
   { MODKEY|ShiftMask,             XK_q,      killclient,      {0} },
-  { modkey,                       XK_space,  togglefloating,  {0} },
+  { MODKEY,                       XK_space,  togglefloating,  {0} },
   { MODKEY|ShiftMask,             XK_1,      setcontainer,    {.f = 1 } },
   { MODKEY|ShiftMask,             XK_2,      setcontainer,    {.f = 2 } },
   { MODKEY|ShiftMask,             XK_3,      setcontainer,    {.f = 3 } },
