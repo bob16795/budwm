@@ -583,7 +583,7 @@ buttonpress(XEvent *e)
   } else if ((c = wintoclient(ev->window))) {
     click = ClkClientWin;
     int tot = 0;
-    if (ev->y < bh) {
+    if (ev->y < bh && c->isframe ) {
       click = ClkFrameWin;
       Client* cb;
       if (!c->isfloating) {
@@ -1398,27 +1398,27 @@ getsystraywidth()
 
 char *
 gettitle(Monitor *m){
-  char *result = ecalloc(600, sizeof(char));
+  char *result = ecalloc(256, sizeof(char));
   Client *c = m->sel;
   switch (titlemode) {
     case 1:
       if (!c)
-        sprintf(result, "%s x:%d y:%d w:%d h:%d", desktoptext, m->mx, m->my, m->mw, m->mh);
+        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d", desktoptext, m->mx, m->my, m->mw, m->mh);
       else
-        sprintf(result, "%s x:%d y:%d w:%d h:%d", c->name, c->x, c->y, c->w, c->h);
+        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d", c->name, c->x, c->y, c->w, c->h);
       break;
     default:
       if (!c)
-        sprintf(result, "%s", desktoptext);
+        snprintf(result, 256, "%s", desktoptext);
       else
-        sprintf(result, "%s", c->name);
+        snprintf(result, 256, "%s", c->name);
   }
   if (baricon) {
-    char *iresult = ecalloc(600, sizeof(char));
+    char *iresult = ecalloc(256, sizeof(char));
     if (c)
-      sprintf(iresult, "%s %s", c->icon, result);
+      snprintf(iresult, 256, "%s %s", c->icon, result);
     else
-      sprintf(iresult, "%s %s", desktopicon, result);
+      snprintf(iresult, 256, "%s %s", desktopicon, result);
     return iresult;
   } else {
     return result;
@@ -2270,8 +2270,6 @@ setabsplit(const Arg *arg)
     if (arg->i != 0)
       absplit = arg->i;
   }
-  if (absplit < 0)
-    absplit += selmon->ww;
   if (selmon->sel)
     arrange(selmon);
   else
@@ -2285,8 +2283,6 @@ setacsplit(const Arg *arg)
     if (arg->i != 0)
       acsplit = arg->i;
   }
-  if (acsplit < 0)
-    acsplit += selmon->wh;
   if (selmon->sel)
     arrange(selmon);
   else
@@ -2300,8 +2296,6 @@ setbdsplit(const Arg *arg)
     if (arg->i != 0)
       bdsplit = arg->i;
   }
-  if (bdsplit < 0)
-    bdsplit += selmon->wh;
   if (selmon->sel)
     arrange(selmon);
   else
@@ -2372,6 +2366,12 @@ setup(void)
   updatebars();
   baricons = defbaricons;
   updatestatus();
+  Arg a = {.i = absplit};
+  setabsplit(&a);
+  a.i = acsplit;
+  setacsplit(&a);
+  a.i = bdsplit;
+  setbdsplit(&a);
   if (enableipc)
     updateipc();
   if (onebar)
@@ -2879,35 +2879,35 @@ updateipc(void)
   if (fcntl(fd, F_SETLK, &lock) < 0) /** F_SETLK doesn't block, F_SETLKW does **/
     die("fcntl failed to get lock...");
   else {
-    char str[425]; // 14+1+128+1+256+1+8+1+1+1+1+10+2
+    char str[256]; // 256
     long rawdata[] = { selmon->tagset[seltags] };
     int i=0;
     while(*rawdata >> (i+1)) i++;
-    sprintf(str, "ActiveTag: %d\n", i + 1);
+    snprintf(str, 256, "ActiveTag: %d\n", i + 1);
     write(fd, str, strlen(str));
-    sprintf(str, "Icons: %d\n", baricons);
+    snprintf(str, 256, "Icons: %d\n", baricons);
     write(fd, str, strlen(str));
     if ((c = selmon->sel)) {
       long rawdata[] = { c->tags };
       int tag=0;
       while(*rawdata >> (tag+1)) tag++;
-      sprintf(str, "ActiveClient;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
+      snprintf(str, 256, "ActiveClient;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
     } else {
-      sprintf(str, "ActiveClient;None\n");
+      snprintf(str, 256, "ActiveClient;None\n");
     }
     write(fd, str, strlen(str));
     for (m = mons; m; m = m->next){
       char str[42]; // 8+1+10+1+10+1+10+2
-      sprintf(str, "Monitor;%d;%dx%d\n", m->num, m->mw, m->mh);
+      snprintf(str, 256, "Monitor;%d;%dx%d\n", m->num, m->mw, m->mh);
       write(fd, str, strlen(str));
-      sprintf(str, "  CurTitle: %s\n", gettitle(m));
+      snprintf(str, 256, "  CurTitle: %s\n", gettitle(m));
       write(fd, str, strlen(str));
       for (c = m->clients; c; c = c->next){
         long rawdata[] = { c->tags };
         int tag=0;
         while(*rawdata >> (tag+1)) tag++;
         char str[421]; // 9+1+128+1+256+1+8+1+1+1+1+1+1+10+2
-        sprintf(str, "  Client;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
+        snprintf(str, 256, "  Client;%s;%s;%s;%c;%d;%d;%ld\n", c->name, c->realname, c->icon, 'A' - 1 + c->container, c->isfloating, tag + 1, c->win);
         write(fd, str, strlen(str));
       }
     }
@@ -3037,10 +3037,7 @@ updatesystrayicongeom(Client *i, int w, int h)
     applysizehints(i, &(i->x), &(i->y), &(i->w), &(i->h), False);
     /* force icons into the systray dimensions if they don't want to */
     if (i->h > bh) {
-      if (i->w == i->h)
-        i->w = bh;
-      else
-        i->w = (int) ((float)bh * ((float)i->w / (float)i->h));
+      i->w = bh;
       i->h = bh;
     }
   }

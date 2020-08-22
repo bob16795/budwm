@@ -34,8 +34,6 @@ bud(Monitor *mon) {
   unsigned int Ap = 0, Bp = 0, Cp = 0, Dp = 0;
   Client *c;
   
-  int basplit = (mon->ww - absplit);
-  
   for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++) {
     c->isframe = 1;
     if (c->container == 5)
@@ -57,9 +55,19 @@ bud(Monitor *mon) {
   if(n == 0)
     return;
 
+  int acsplitn = acsplit;
+  if (acsplitn < 0)
+    acsplitn += mon->wh;
+  acsplitn -= (bh * mon->showbar);
+  int bdsplitn = bdsplit;
+  if (bdsplitn < 0)
+    bdsplitn += mon->wh;
+  bdsplitn -= (bh * mon->showbar);
+  int absplitn = absplit;
+  if (absplitn < 0)
+    absplitn += mon->ww;
+  int basplit = (mon->ww - absplitn);
   for(c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
-    int acsplitn = acsplit - (bh * c->mon->showbar);
-    int bdsplitn = bdsplit - (bh * c->mon->showbar);
     nx = mon->wx + gappso;
     ny = mon->wy + gappso;
     nw = mon->ww - gappso;
@@ -71,7 +79,7 @@ bud(Monitor *mon) {
       if (!C) nh = nh - gappso;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplit - gappso;
+      if (A || C) nx = nx + absplitn - gappso;
       if (A || C) nw = basplit - gappso;
       else nw = nw - gappso;
       if (D) nh = bdsplitn - gappsi;
@@ -85,7 +93,7 @@ bud(Monitor *mon) {
       if (A) ny = ny + acsplitn + gappsi;
       fixcontainer(&Cp, &nw, &nx, &nh, &ny, C, cmode);
     } else if (c->container == 4){
-      if (A || C) nx = nx+ absplit - gappso;
+      if (A || C) nx = nx+ absplitn - gappso;
       if (A || C) nw = basplit - gappso;
       else nw = nw - gappso;
       if (B) nh = nh - bdsplitn - gappsi;
@@ -103,7 +111,6 @@ budnogaps(Monitor *mon) {
   unsigned int A = 0, B = 0, C = 0, D = 0;
   unsigned int Ap = 0, Bp = 0, Cp = 0, Dp = 0;
   Client *c;
-  int basplit = (mon->ww - absplit);
 
   for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++) {
     if (c->container == 5)
@@ -127,9 +134,19 @@ budnogaps(Monitor *mon) {
   if(n == 0)
     return;
 
+  int acsplitn = acsplit;
+  if (acsplitn < 0)
+    acsplitn += mon->wh;
+  acsplitn -= (bh * mon->showbar);
+  int bdsplitn = bdsplit;
+  if (bdsplitn < 0)
+    bdsplitn += mon->wh;
+  bdsplitn -= (bh * mon->showbar);
+  int absplitn = absplit;
+  if (absplitn < 0)
+    absplitn += mon->ww;
+  int basplit = (mon->ww - absplitn);
   for(c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
-    int acsplitn = acsplit - (bh * c->mon->showbar);
-    int bdsplitn = bdsplit - (bh * c->mon->showbar);
     nx = mon->wx;
     ny = mon->wy;
     nw = mon->ww;
@@ -139,7 +156,7 @@ budnogaps(Monitor *mon) {
       if (B || D) nw = nw - basplit;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplit;
+      if (A || C) nx = nx + absplitn;
       if (A || C) nw = basplit;
       if (D) nh = bdsplitn;
       if (!D) nh = nh;
@@ -151,7 +168,7 @@ budnogaps(Monitor *mon) {
       if (!A) c->isframe = 0;
       fixcontainer(&Cp, &nw, &nx, &nh, &ny, C, cmode);
     } else if (c->container == 4){
-      if (A || C) nx = nx + absplit;
+      if (A || C) nx = nx + absplitn;
       if (A || C) nw = basplit;
       if (B) nh = nh - bdsplitn;
       nh = nh;
@@ -172,7 +189,6 @@ budnoigaps(Monitor *mon) {
   unsigned int Ap = 0, Bp = 0, Cp = 0, Dp = 0;
   Client *c;
 
-  int basplit = (mon->ww - absplit);
   
   for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++) {
     c->isframe = 0;
@@ -195,9 +211,19 @@ budnoigaps(Monitor *mon) {
   if(n == 0)
     return;
 
+  int acsplitn = acsplit;
+  if (acsplitn < 0)
+    acsplitn += mon->wh;
+  acsplitn -= (bh * mon->showbar);
+  int bdsplitn = bdsplit;
+  if (bdsplitn < 0)
+    bdsplitn += mon->wh;
+  bdsplitn -= (bh * mon->showbar);
+  int absplitn = absplit;
+  if (absplitn < 0)
+    absplitn += mon->ww;
+  int basplit = (mon->ww - absplitn);
   for(c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
-    int acsplitn = acsplit - (bh * c->mon->showbar);
-    int bdsplitn = bdsplit - (bh * c->mon->showbar);
     nx = mon->wx + gappso;
     ny = mon->wy + gappso;
     nw = mon->ww - gappso;
@@ -209,7 +235,7 @@ budnoigaps(Monitor *mon) {
       if (!C) nh = nh - gappso;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplit - 2 * gappso;
+      if (A || C) nx = nx + absplitn - 2 * gappso;
       if (A || C) nw = basplit; 
       else nw = nw - gappso;
       if (D) nh = bdsplitn;
@@ -223,7 +249,7 @@ budnoigaps(Monitor *mon) {
       if (A) ny = ny + acsplitn;
       fixcontainer(&Cp, &nw, &nx, &nh, &ny, C, cmode);
     } else if (c->container == 4){
-      if (A || C) nx = nx + absplit - 2 * gappso;
+      if (A || C) nx = nx + absplitn - 2 * gappso;
       if (A || C) nw = basplit;
       else nw = nw - gappso;
       if (B) nh = nh - bdsplitn;
@@ -242,7 +268,6 @@ budnoogaps(Monitor *mon) {
   unsigned int Ap = 0, Bp = 0, Cp = 0, Dp = 0;
   Client *c;
   
-  int basplit = (mon->ww - absplit);
   
   for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++) {
     if (c->container == 5)
@@ -267,9 +292,19 @@ budnoogaps(Monitor *mon) {
   if(n == 0)
     return;
 
+  int acsplitn = acsplit;
+  if (acsplitn < 0)
+    acsplitn += mon->wh;
+  acsplitn -= (bh * mon->showbar);
+  int bdsplitn = bdsplit;
+  if (bdsplitn < 0)
+    bdsplitn += mon->wh;
+  bdsplitn -= (bh * mon->showbar);
+  int absplitn = absplit;
+  if (absplitn < 0)
+    absplitn += mon->ww;
+  int basplit = (mon->ww - absplitn);
   for(c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
-    int acsplitn = acsplit - (bh * c->mon->showbar);
-    int bdsplitn = bdsplit - (bh * c->mon->showbar);
     nx = mon->wx;
     ny = mon->wy;
     nw = mon->ww;
@@ -279,7 +314,7 @@ budnoogaps(Monitor *mon) {
       if (B || D) nw = nw - basplit - gappsi;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplit;
+      if (A || C) nx = nx + absplitn;
       if (A || C) nw = basplit;
       if (D) nh = bdsplitn - gappsi;
       fixcontainer(&Bp, &nw, &nx, &nh, &ny, B, bmode);
@@ -289,7 +324,7 @@ budnoogaps(Monitor *mon) {
       if (A) ny = ny + acsplitn + gappsi;
       fixcontainer(&Cp, &nw, &nx, &nh, &ny, C, cmode);
     } else if (c->container == 4){
-      if (A || C) nx = nx + absplit;
+      if (A || C) nx = nx + absplitn;
       if (A || C) nw = basplit;
       if (B) nh = nh - bdsplitn - gappsi;
       if (B) ny = ny + bdsplitn + gappsi;

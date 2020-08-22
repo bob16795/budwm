@@ -20,7 +20,7 @@ static const int frameicons         = 1;        /* show container icons in frame
 static const int frametabs          = 1;        /* show container icons in frame */
 static const int baricon            = 1;
 static const int onebar             = 1;        /* show only the bar on the main monitor*/
-static int absplit                  = 916;
+static int absplit                  = -450;
 static int acsplit                  = 170;
 static int bdsplit                  = 300;
 static int amode                    = 1;        /* default mode for contsainer a 0: stack, 1: horiz, 2: vertical*/
@@ -123,7 +123,6 @@ static const char *druncmd[] = { "j4-dmenu-desktop", NULL };
 
 static Key keys[] = {
   /* modifier                     key        function         argument */
-  //{ MODKEY|ControlMask|Mod1Mask,  XK_Return, spawn,           TERMCMD("st", "/usr/bin/zsh") },
   { MODKEY,                       XK_h,      cyclelayout,     {.i = +1 } },
   { MODKEY,                       XK_grave,  spawn,           SHCMD("iconpick") },
   { MODKEY,                       XK_d,      spawn,           {.v = runcmd } },
