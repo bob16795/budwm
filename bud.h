@@ -1,4 +1,5 @@
 void fixcontainer(unsigned int *posammount, unsigned int *nw, unsigned int *nx, unsigned int *nh, unsigned int *ny, unsigned int ammount, unsigned int mode);
+void fixframe(Client *c, unsigned int *nw, unsigned int *nx, unsigned int *nh, unsigned int *ny);
 void
 fixcontainer(unsigned int *posammount, unsigned int *nw, unsigned int *nx, unsigned int *nh, unsigned int *ny, unsigned int ammount, unsigned int mode) {
   if (*posammount + 1 == ammount) {
@@ -25,6 +26,14 @@ fixcontainer(unsigned int *posammount, unsigned int *nw, unsigned int *nx, unsig
     }
   }
   *posammount += 1;
+}
+
+void
+fixframe(Client *c, unsigned int *nw, unsigned int *nx, unsigned int *nh, unsigned int *ny){
+  if (c->isframe){
+    *ny += bh;
+    *nh -= bh;
+  }
 }
 
 void
@@ -79,7 +88,7 @@ bud(Monitor *mon) {
       if (!C) nh = nh - gappso;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplitn - gappso;
+      if (A || C) nx = nx + absplit - gappso;
       if (A || C) nw = basplit - gappso;
       else nw = nw - gappso;
       if (D) nh = bdsplitn - gappsi;
@@ -101,6 +110,7 @@ bud(Monitor *mon) {
       if (B) ny = ny + bdsplitn + gappsi;
       fixcontainer(&Dp, &nw, &nx, &nh, &ny, D, dmode);
     }
+    fixframe(c, &nw, &nx, &nh, &ny);
     resize(c, nx, ny, nw-2 * c->bw, nh-2 * c->bw, False);
   }
 }
@@ -178,6 +188,7 @@ budnogaps(Monitor *mon) {
     }
     if (!mon->showbar)
       c->isframe = 1;
+    fixframe(c, &nw, &nx, &nh, &ny);
     resize(c, nx, ny, nw-2 * c->bw, nh-2 * c->bw, False);
   }
 }
@@ -257,6 +268,7 @@ budnoigaps(Monitor *mon) {
       if (B) ny = ny + bdsplitn;
       fixcontainer(&Dp, &nw, &nx, &nh, &ny, D, dmode);
     }
+    fixframe(c, &nw, &nx, &nh, &ny);
     resize(c, nx, ny, nw-2 * c->bw, nh-2 * c->bw, False);
   }
 }
@@ -330,6 +342,7 @@ budnoogaps(Monitor *mon) {
       if (B) ny = ny + bdsplitn + gappsi;
       fixcontainer(&Dp, &nw, &nx, &nh, &ny, D, dmode);
     }
+    fixframe(c, &nw, &nx, &nh, &ny);
     resize(c, nx, ny, nw-2 * c->bw, nh-2 * c->bw, False);
   }
 }

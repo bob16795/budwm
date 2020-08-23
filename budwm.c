@@ -835,18 +835,18 @@ configure(Client *c)
   ce.window = c->win;
   ce.x = c->x + c->bw;
   ce.y = c->y + c->bw;
-  if (c->isframe)
-    ce.y += bh;
+  //if (c->isframe)
+  //  ce.y += bh;
   ce.width = c->w;
   ce.height = c->h;
   if (c->isfloating)
     c->isframe = 1;
-  if (c->isframe)
-    ce.height = c->h - bh - c->bw;
+  //if (c->isframe)
+  //  ce.height = c->h - bh - c->bw;
   ce.border_width = c->bw;
   ce.above = None;
   ce.override_redirect = False;
-  XSendEvent(dpy, c->framewin, False, StructureNotifyMask, (XEvent *)&ce);
+  XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
 }
 
 void
@@ -913,8 +913,6 @@ configurerequest(XEvent *e)
         c->y = m->my + (m->mh / 2 - HEIGHT(c) / 2); /* center in y direction */
       if ((ev->value_mask & (CWX|CWY)) && !(ev->value_mask & (CWWidth|CWHeight)))
         configure(c);
-      if (ISVISIBLE(c))
-        XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
     } else
       configure(c);
   } else {
@@ -1329,7 +1327,10 @@ frame(Client *c){
   at.override_redirect = True;
   at.bit_gravity = StaticGravity;
   at.event_mask = EnterWindowMask|SubstructureRedirectMask|SubstructureNotifyMask|ExposureMask|VisibilityChangeMask;
-  c->framewin = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
+  if (c->isframe)
+    c->framewin = XCreateWindow(dpy, root, c->x - bh, c->y, c->w, c->h + bh, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
+  else
+    c->framewin = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
   XAddToSaveSet(dpy, c->win);
   XReparentWindow(dpy, c->win, c->framewin, 0, bh);
   XMapWindow(dpy, c->framewin);
@@ -1638,9 +1639,9 @@ manage(Window w, XWindowAttributes *wa)
     c->tags = t->tags;
   } else {
     c->mon = selmon;
-    applyrules(c);
     term = termforwin(c);
   }
+  applyrules(c);
 
   if (c->x + WIDTH(c) > c->mon->mx + c->mon->mw)
     c->x = c->mon->mx + c->mon->mw - WIDTH(c);
@@ -1661,8 +1662,8 @@ manage(Window w, XWindowAttributes *wa)
 
   //wc.border_width = c->bw;
   //XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-  XSetWindowBorder(dpy, c->framewin, scheme[SchemeNorm][ColBorder].pixel);
   frame(c);
+  XSetWindowBorder(dpy, c->framewin, scheme[SchemeNorm][ColBorder].pixel);
   configure(c); /* propagates border_width, if size doesn't change */
   updatewindowtype(c);
   updatesizehints(c);
@@ -1671,8 +1672,10 @@ manage(Window w, XWindowAttributes *wa)
   grabbuttons(c, 0);
   if (!c->isfloating)
     c->isfloating = c->oldstate = trans != None || c->isfixed;
-  if (c->isfloating)
+  if (c->isfloating) {
     XRaiseWindow(dpy, c->framewin);
+    
+  }
   attach(c);
   attachstack(c);
    XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1683,7 +1686,7 @@ manage(Window w, XWindowAttributes *wa)
   c->mon->sel = c;
   arrange(c->mon);
   XMapWindow(dpy, c->win);
-  resize(c, c->x, c->y, c->w, c->h, False);
+  resize(c, c->x, c->y, c->w, c->h, True);
   drawframe(c);
   if (term)
 		swallow(term, c);
@@ -1836,6 +1839,8 @@ propertynotify(XEvent *e)
       break;
     case XA_WM_NORMAL_HINTS:
       updatesizehints(c);
+      //resize(c, c->x, c->y, c->w, c->h, True);
+      configure(c);
       break;
     case XA_WM_HINTS:
       updatewmhints(c);
@@ -1917,12 +1922,14 @@ resizeclient(Client *c, int x, int y, int w, int h)
   c->oldw = c->w; c->w = wc.width = w;
   c->oldh = c->h; c->h = wc.height = h;
   wc.border_width = c->bw;
-  //XConfigureWindow(dpy, c->framewin, CWX|CWY|CWWidth|CWHeight, &wc);
-  XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
-  if (c->isframe)
-    XMoveResizeWindow(dpy, c->win, 0, bh, w, h-bh+c->bw);
-  else 
+  XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight, &wc);
+  if (c->isframe) {
+    XMoveResizeWindow(dpy, c->framewin, c->x, c->y - bh, c->w, c->h + bh);
+    XMoveResizeWindow(dpy, c->win, 0, bh, w, h);
+  } else {
+    XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
     XMoveResizeWindow(dpy, c->win, 0, 0, w, h);
+  }
   XSetWindowBorderWidth(dpy, c->framewin, c->bw);
   configure(c);
   XSync(dpy, False);
@@ -2949,28 +2956,28 @@ updatesizehints(Client *c)
     size.flags = PSize;
   if (size.flags & PBaseSize) {
     c->basew = size.base_width;
-    c->baseh = size.base_height + bh;
+    c->baseh = size.base_height;
   } else if (size.flags & PMinSize) {
     c->basew = size.min_width;
-    c->baseh = size.min_height + bh;
+    c->baseh = size.min_height;
   } else
     c->basew = c->baseh = 0;
   if (size.flags & PResizeInc) {
     c->incw = size.width_inc;
-    c->inch = size.height_inc + bh;
+    c->inch = size.height_inc;
   } else
     c->incw = c->inch = 0;
   if (size.flags & PMaxSize) {
     c->maxw = size.max_width;
-    c->maxh = size.max_height + bh;
+    c->maxh = size.max_height;
   } else
     c->maxw = c->maxh = 0;
   if (size.flags & PMinSize) {
     c->minw = size.min_width;
-    c->minh = size.min_height + bh;
+    c->minh = size.min_height;
   } else if (size.flags & PBaseSize) {
     c->minw = size.base_width;
-    c->minh = size.base_height + bh;
+    c->minh = size.base_height;
   } else
     c->minw = c->minh = 0;
   if (size.flags & PAspect) {
@@ -2996,7 +3003,6 @@ updatestatus(void)
     strcpy(ico, " icon");
     if ((baricons >> i) & 1)
       strcat(cmd, ico);
-    printf(cmd);
     FILE *cmdf = popen(cmd, "r");
     if (!cmdf)
       continue;
