@@ -32,11 +32,11 @@ static const int defbaricons        = 0b0;
 static const char *desktoptext      = "Desktop";
 static const char *desktopicon      = "";
 static char normbgcolor[]           = "#222222";
-static char normbordercolor[]       = "#444444";
-static char normfgcolor[]           = "#bbbbbb";
-static char selfgcolor[]            = "#eeeeee";
-static char selbordercolor[]        = "#005577";
-static char selbgcolor[]            = "#005577";
+static char normbordercolor[]       = "#333333";
+static char normfgcolor[]           = "#888888";
+static char selfgcolor[]            = "#FFFFFF";
+static char selbordercolor[]        = "#4C7899";
+static char selbgcolor[]            = "#285577";
 static char *colors[][3] = {
   /*               fg           bg           border   */
   [SchemeNorm] = { normfgcolor, normbgcolor, normbordercolor },
@@ -91,12 +91,12 @@ static const Rule rules[] = {
 /* layout(s) */
 static const int resizehints = 0;    /* 1 means respect size hints in tiled resizals */
 
-#include "bud.c"
+#include "bud.h"
 static const Layout layouts[] = {
   /* symbol     arrange function */
   {" --- ",     budnogaps },
-  {" -+- ",      budnoogaps},
-  {" [+] ",      bud       },
+  {" -+- ",     budnoogaps},
+  {" [+] ",     bud       },
   {" [-] ",     budnoigaps},
   {NULL, NULL}
 };
@@ -107,12 +107,12 @@ static void titlemodetoggle(const Arg *arg);
 
 /* key definitions */
 #define MODKEY Mod4Mask
-#define TAGKEYS(KEY,TAG) \
-  { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
-  { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-  { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+#define TAGKEYS(KEY,TAG)
+  { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} },
+  { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} },
+  { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} },
   { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
-        
+
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define TERMCMD(name, cmd) { .v = (const char*[]){ "/usr/local/bin/st", "-T", name, "-c", name, "-e", cmd, NULL } }

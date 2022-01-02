@@ -88,7 +88,7 @@ bud(Monitor *mon) {
       if (!C) nh = nh - gappso;
       fixcontainer(&Ap, &nw, &nx, &nh, &ny, A, amode);
     } else if (c->container == 2){
-      if (A || C) nx = nx + absplit - gappso;
+      if (A || C) nx = nx + absplitn - gappso;
       if (A || C) nw = basplit - gappso;
       else nw = nw - gappso;
       if (D) nh = bdsplitn - gappsi;
@@ -102,7 +102,7 @@ bud(Monitor *mon) {
       if (A) ny = ny + acsplitn + gappsi;
       fixcontainer(&Cp, &nw, &nx, &nh, &ny, C, cmode);
     } else if (c->container == 4){
-      if (A || C) nx = nx+ absplitn - gappso;
+      if (A || C) nx = nx + absplitn - gappso;
       if (A || C) nw = basplit - gappso;
       else nw = nw - gappso;
       if (B) nh = nh - bdsplitn - gappsi;

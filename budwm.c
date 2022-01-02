@@ -114,7 +114,7 @@ typedef union {
 } Arg;
 
 typedef struct {
-  char* icon;
+  unsigned int icon;
   char* command;
 } Block;
 
@@ -193,12 +193,10 @@ typedef struct {
   const char *title;
   const char *name;
   const char *icon;
-  unsigned int tags;
   int iscentered;
   int isfloating;
   int isterminal;
 	int noswallow;
-  int monitor;
   int container;
 } Rule;
 
@@ -438,10 +436,6 @@ applyrules(Client *c)
       if (c->container == 2 && absplit > c->mon->mw)
         c->container = 1;
       c->isfloating = r->isfloating;
-      c->tags |= r->tags;
-      for (m = mons; m && m->num != r->monitor; m = m->next);
-      if (m)
-        c->mon = m;
     }
   }
   if (ch.res_class)
@@ -1084,7 +1078,7 @@ drawbar(Monitor *m)
   }
   char *name = gettitle(m);
   w = m->ww - sw - x - stw;
-  int mid = (m->ww - TEXTW(name)) / 2 - x;
+  int mid = (w - TEXTW(name)) / 2;
   drw_text(drw, x, 0, w, bh, mid, name, 0);
   drw_map(drw, m->barwin, 0, 0, m->ww - stw, bh);
 }
@@ -1404,9 +1398,9 @@ gettitle(Monitor *m){
   switch (titlemode) {
     case 1:
       if (!c)
-        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d", desktoptext, m->mx, m->my, m->mw, m->mh);
+        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d m:%d", desktoptext, m->mx, m->my, m->mw, m->mh, m->num);
       else
-        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d", c->name, c->x, c->y, c->w, c->h);
+        snprintf(result, 256, "%s x:%d y:%d w:%d h:%d c:%d", c->name, c->x, c->y, c->w, c->h, c->container);
       break;
     default:
       if (!c)
@@ -1509,7 +1503,7 @@ inchsplit(const Arg *arg){
     if (selmon->sel)
       arrange(selmon);
     else
-      drawbar(selmon);
+      drawbars();
   } else {
     if (arg){
       if (arg->i != 0)
@@ -1520,7 +1514,7 @@ inchsplit(const Arg *arg){
     if (selmon->sel)
       arrange(selmon);
     else
-      drawbar(selmon);
+      drawbars();
   }
 }
 
@@ -1535,7 +1529,7 @@ incvsplit(const Arg *arg){
     if (selmon->sel)
       arrange(selmon);
     else
-      drawbar(selmon);
+      drawbars();
 }
 
 #ifdef XINERAMA
@@ -1641,6 +1635,8 @@ manage(Window w, XWindowAttributes *wa)
     c->mon = selmon;
     term = termforwin(c);
   }
+  if (c->isfloating)
+    c->isframe = 1;
   applyrules(c);
 
   if (c->x + WIDTH(c) > c->mon->mx + c->mon->mw)
@@ -1691,6 +1687,11 @@ manage(Window w, XWindowAttributes *wa)
   if (term)
 		swallow(term, c);
   focus(NULL);
+  if (c->container == 5)
+    unmanage(c, False);
+  Atom target = XInternAtom(dpy, "_IS_FLOATING", 0);
+  unsigned int floating[1] = {c->isfloating};
+  XChangeProperty(dpy, c->win, target, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)floating, 1);
 }
 
 void
@@ -1933,6 +1934,7 @@ resizeclient(Client *c, int x, int y, int w, int h)
   XSetWindowBorderWidth(dpy, c->framewin, c->bw);
   configure(c);
   XSync(dpy, False);
+  drawframe(c);
 }
  
 void
@@ -2013,7 +2015,7 @@ restack(Monitor *m)
   XEvent ev;
   XWindowChanges wc;
 
-  drawbar(m);
+  drawbars();
   if (!m->sel)
     return;
   if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
@@ -2245,7 +2247,7 @@ setlayout(const Arg *arg)
   if (selmon->sel)
     arrange(selmon);
   else
-    drawbar(selmon);
+    drawbars();
 }
 
 void
@@ -2280,7 +2282,7 @@ setabsplit(const Arg *arg)
   if (selmon->sel)
     arrange(selmon);
   else
-    drawbar(selmon);
+    drawbars();
 }
 
 void
@@ -2293,7 +2295,7 @@ setacsplit(const Arg *arg)
   if (selmon->sel)
     arrange(selmon);
   else
-    drawbar(selmon);
+    drawbars();
 }
 
 void
@@ -2306,7 +2308,7 @@ setbdsplit(const Arg *arg)
   if (selmon->sel)
     arrange(selmon);
   else
-    drawbar(selmon);
+    drawbars();
 }
 
 void
@@ -2546,6 +2548,10 @@ togglefloating(const Arg *arg)
       selmon->sel->container = 1;
   }
   arrange(selmon);
+
+  Atom target = XInternAtom(dpy, "_IS_FLOATING", 0);
+  unsigned int floating[1] = {selmon->sel->isfloating};
+  XChangeProperty(dpy, selmon->sel->win, target, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)floating, 1);
 }
 
 void
@@ -2788,6 +2794,9 @@ void updatecurrentdesktop(void){
   }
   long data[] = { i };
   XChangeProperty(dpy, root, netatom[NetCurrentDesktop], XA_CARDINAL, 32, PropModeReplace, (unsigned char *)data, 1);
+  updateipc();
+  updatestatus();
+  drawbars();
 }
 
 int
@@ -2997,7 +3006,8 @@ updatestatus(void)
   for(int i = 0; i < LENGTH(blocks); i++)
   {
     block = blocks + i;
-    strcpy(statusbar[i], block->icon);
+    if (block->icon)
+      strcpy(statusbar[i], ";");
     char *cmd = calloc(6+strlen(block->command), sizeof(char)), *ico = calloc(6, sizeof(char));
     strcpy(cmd, block->command);
     strcpy(ico, " icon");
@@ -3007,7 +3017,7 @@ updatestatus(void)
     if (!cmdf)
       continue;
     char c;
-    int j = strlen(block->icon);
+    int j = block->icon;
     do{
       c = fgetc(cmdf);
       if( feof(cmdf) )
@@ -3025,7 +3035,7 @@ updatestatus(void)
     strcpy(stext + j, statusbar[i]);
   }
   stext[--j] = '\0';
-  drawbar(selmon);
+  drawbars();
   updatesystray();
 }
 
@@ -3179,7 +3189,7 @@ updatewmhints(Client *c)
     if (c == selmon->sel && wmh->flags & XUrgencyHint) {
       wmh->flags &= ~XUrgencyHint;
       XSetWMHints(dpy, c->win, wmh);
-      XSetWMHints(dpy, c->framewin, wmh);
+      //XSetWMHints(dpy, c->framewin, wmh);
     } else
       c->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
     if (wmh->flags & InputHint)

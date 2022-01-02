@@ -21,9 +21,11 @@ Just like icons the script will be run with the argument `1`, `2`, or `3`. based
 
 You can add text to the bar by adding it to the const Blocks in config.h.
 The format for this is
+
 ```c
   {icon, command},
 ```
+
 - icon: To be reimplemeted, prepends the module with this text.
 - command: The path or name of the module script.
 
