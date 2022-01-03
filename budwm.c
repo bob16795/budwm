@@ -2138,6 +2138,10 @@ setcontainer(const Arg *arg) {
   if (c->container == 2 && absplit > c->mon->mw)
     c->container = 1;
   c->isfloating = 0;
+  Atom target = XInternAtom(dpy, "_IS_FLOATING", 0);
+  unsigned int floating[1] = {c->isfloating};
+  XChangeProperty(dpy, c->win, target, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)floating, 1);
+
   arrange(selmon);
 }
 
