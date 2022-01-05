@@ -608,12 +608,6 @@ buttonpress(XEvent *e)
       buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
       return;
     }
-  if (!c)
-    return;
-  focus(c);
-  restack(selmon);
-  XAllowEvents(dpy, ReplayPointer, ev->time);
-  //XSendEvent(dpy, c->win, False, BUTTONMASK, e);
 }
 
 void
@@ -822,6 +816,8 @@ clientmessage(XEvent *e)
 void
 configure(Client *c)
 {
+  if (c->isfloating)
+    c->isframe = 1;
   XConfigureEvent ce;
   ce.type = ConfigureNotify;
   ce.display = dpy;
@@ -829,14 +825,12 @@ configure(Client *c)
   ce.window = c->win;
   ce.x = c->x + c->bw;
   ce.y = c->y + c->bw;
-  //if (c->isframe)
-  //  ce.y += bh;
+  if (c->isframe)
+    ce.y += bh;
   ce.width = c->w;
   ce.height = c->h;
-  if (c->isfloating)
-    c->isframe = 1;
-  //if (c->isframe)
-  //  ce.height = c->h - bh - c->bw;
+  if (c->isframe)
+    ce.height = c->h - bh - c->bw;
   ce.border_width = c->bw;
   ce.above = None;
   ce.override_redirect = False;
@@ -1322,7 +1316,7 @@ frame(Client *c){
   at.bit_gravity = StaticGravity;
   at.event_mask = EnterWindowMask|SubstructureRedirectMask|SubstructureNotifyMask|ExposureMask|VisibilityChangeMask;
   if (c->isframe)
-    c->framewin = XCreateWindow(dpy, root, c->x - bh, c->y, c->w, c->h + bh, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
+    c->framewin = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h + bh, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
   else
     c->framewin = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h, c->bw, CopyFromParent, CopyFromParent, CopyFromParent, CWOverrideRedirect | CWBackPixmap | CWEventMask, &at);
   XAddToSaveSet(dpy, c->win);
@@ -1606,6 +1600,7 @@ loadxrdb()
   }
 
   XCloseDisplay(display);
+  
 }
 
 void
@@ -1619,9 +1614,9 @@ manage(Window w, XWindowAttributes *wa)
   c->pid = winpid(w);
   /* geometry */
   c->x = c->oldx = wa->x;
-  c->y = c->oldy = wa->y - bh;
+  c->y = c->oldy = wa->y;
   c->w = c->oldw = wa->width;
-  c->h = c->oldh = wa->height + bh;
+  c->h = c->oldh = wa->height;
   c->oldbw = wa->border_width;
   c->container = 3;
   if (acsplit > selmon->mh)
@@ -1635,9 +1630,9 @@ manage(Window w, XWindowAttributes *wa)
     c->mon = selmon;
     term = termforwin(c);
   }
+
   if (c->isfloating)
     c->isframe = 1;
-  applyrules(c);
 
   if (c->x + WIDTH(c) > c->mon->mx + c->mon->mw)
     c->x = c->mon->mx + c->mon->mw - WIDTH(c);
@@ -1655,9 +1650,9 @@ manage(Window w, XWindowAttributes *wa)
     c->x += c->mon->mx;
     c->y += c->mon->my;
   }
-
-  //wc.border_width = c->bw;
-  //XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
+  
+  applyrules(c);
+  
   frame(c);
   XSetWindowBorder(dpy, c->framewin, scheme[SchemeNorm][ColBorder].pixel);
   configure(c); /* propagates border_width, if size doesn't change */
@@ -1925,7 +1920,7 @@ resizeclient(Client *c, int x, int y, int w, int h)
   wc.border_width = c->bw;
   XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight, &wc);
   if (c->isframe) {
-    XMoveResizeWindow(dpy, c->framewin, c->x, c->y - bh, c->w, c->h + bh);
+    XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
     XMoveResizeWindow(dpy, c->win, 0, bh, w, h);
   } else {
     XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
@@ -3117,6 +3112,8 @@ updatesystray(void)
     XChangeWindowAttributes(dpy, systray->win, CWEventMask|CWOverrideRedirect|CWBackPixel, &wa);
     XMapRaised(dpy, systray->win);
     XSetSelectionOwner(dpy, netatom[NetSystemTray], systray->win, CurrentTime);
+    XClassHint ch = {"budwm", "budwm"};
+    XSetClassHint(dpy, systray->win, &ch);
     if (XGetSelectionOwner(dpy, netatom[NetSystemTray]) == systray->win) {
       sendevent(root, xatom[Manager], StructureNotifyMask, CurrentTime, netatom[NetSystemTray], systray->win, 0, 0);
       XSync(dpy, False);
