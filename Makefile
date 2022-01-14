@@ -17,7 +17,7 @@ options:
 .c.o:
 	${CC} -g -c ${CFLAGS} $<
 
-${OBJ}: config.mk config.h
+${OBJ}: config.mk config.h bud.h
 
 config.h:
 	@echo creating $@ from config.def.h

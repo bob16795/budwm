@@ -817,7 +817,7 @@ void
 configure(Client *c)
 {
   if (c->isfloating)
-    c->isframe = 1;
+    c->isframe = !c->isfullscreen;
   XConfigureEvent ce;
   ce.type = ConfigureNotify;
   ce.display = dpy;
