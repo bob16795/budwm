@@ -30,10 +30,7 @@ fixcontainer(unsigned int *posammount, unsigned int *nw, unsigned int *nx, unsig
 
 void
 fixframe(Client *c, unsigned int *nw, unsigned int *nx, unsigned int *nh, unsigned int *ny){
-  if (c->isframe){
-    *ny += bh;
-    *nh -= bh;
-  }
+
 }
 
 void

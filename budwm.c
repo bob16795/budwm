@@ -473,13 +473,12 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
       *x = m->wx;
     if (*y + *h + 2 * c->bw <= m->wy)
       *y = m->wy;
-    if (c->isframe)
-      *h = *h;
   }
   if (*h < bh)
     *h = bh;
   if (*w < bh)
     *w = bh;
+
   if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
     /* see last two sentences in ICCCM 4.1.2.3 */
     baseismin = c->basew == c->minw && c->baseh == c->minh;
@@ -504,12 +503,21 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
     if (c->inch)
       *h -= *h % c->inch;
     /* restore base dimensions */
-    *w = MAX(*w + c->basew, c->minw);
-    *h = MAX(*h + c->baseh, c->minh);
-    if (c->maxw)
-      *w = MIN(*w, c->maxw);
-    if (c->maxh)
-      *h = MIN(*h, c->maxh);
+    if (c->isframe) {
+      *w = MAX(*w + c->basew, c->minw + bh);
+      *h = MAX(*h + c->baseh, c->minh + bh);
+      if (c->maxw < c->mon->mw && c->maxw)
+        *w = MIN(*w, c->maxw + bh);
+      if (c->maxh < c->mon->mh && c->maxh)
+        *h = MIN(*h, c->maxh + bh);  
+    } else {
+      *w = MAX(*w + c->basew, c->minw);
+      *h = MAX(*h + c->baseh, c->minh);
+      if (c->maxw)
+        *w = MIN(*w, c->maxw);
+      if (c->maxh)
+        *h = MIN(*h, c->maxh);  
+    }
   }
   return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
 }
@@ -821,20 +829,19 @@ configure(Client *c)
   XConfigureEvent ce;
   ce.type = ConfigureNotify;
   ce.display = dpy;
-  ce.event = c->win;
-  ce.window = c->win;
+  ce.event = c->framewin;
+  ce.window = c->framewin;
   ce.x = c->x + c->bw;
   ce.y = c->y + c->bw;
-  if (c->isframe)
-    ce.y += bh;
   ce.width = c->w;
   ce.height = c->h;
-  if (c->isframe)
-    ce.height = c->h - bh - c->bw;
+  if (c->isframe) {
+    ce.height -= bh - c->bw;
+  }
   ce.border_width = c->bw;
   ce.above = None;
   ce.override_redirect = False;
-  XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
+  XSendEvent(dpy, c->framewin, False, StructureNotifyMask, (XEvent *)&ce);
 }
 
 void
@@ -1283,6 +1290,9 @@ focusstack(const Arg *arg)
   if (!selmon->sel)
     return;
   int trg = selmon->sel->container;
+  if (trg == 5)
+    return;
+
   if (arg->i > 0) {
     for (c = selmon->sel->next; c && !(c->container == trg); c = c->next);
     if (!c)
@@ -1918,14 +1928,22 @@ resizeclient(Client *c, int x, int y, int w, int h)
   c->oldw = c->w; c->w = wc.width = w;
   c->oldh = c->h; c->h = wc.height = h;
   wc.border_width = c->bw;
-  XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight, &wc);
+  XConfigureWindow(dpy, c->framewin, CWX|CWY|CWWidth|CWHeight, &wc);
+  wc.x = 0;
+  wc.y = 0;
+  wc.width = w;
+  wc.height = h;
+  wc.border_width = 0;
   if (c->isframe) {
     XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
-    XMoveResizeWindow(dpy, c->win, 0, bh, w, h);
+    XMoveResizeWindow(dpy, c->win, 0, bh, w, h - bh);
+    wc.y = bh;
+    wc.height -= bh;
   } else {
     XMoveResizeWindow(dpy, c->framewin, c->x, c->y, c->w, c->h);
     XMoveResizeWindow(dpy, c->win, 0, 0, w, h);
   }
+  XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight, &wc);
   XSetWindowBorderWidth(dpy, c->framewin, c->bw);
   configure(c);
   XSync(dpy, False);
@@ -3465,7 +3483,11 @@ swallow(Client *p, Client *c)
 	p->framewin = c->framewin;
 	c->framewin = w;
 
-	XChangeProperty(dpy, c->win, netatom[NetClientList], XA_WINDOW, 32, PropModeReplace,
+  Atom target = XInternAtom(dpy, "_IS_FLOATING", 0);
+  unsigned int floating[1] = {c->isfloating};
+  XChangeProperty(dpy, c->win, target, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)floating, 1);
+	
+  XChangeProperty(dpy, c->win, netatom[NetClientList], XA_WINDOW, 32, PropModeReplace,
 		(unsigned char *) &(p->win), 1);
 
 	updatetitle(p);
@@ -3482,7 +3504,7 @@ xrdb(const Arg *arg)
   loadxrdb();
   int i;
   for (i = 0; i < LENGTH(colors); i++)
-                scheme[i] = drw_scm_create(drw, colors[i], 3);
+    scheme[i] = drw_scm_create(drw, colors[i], 3);
   arrange(NULL);
   focus(NULL);
   updatesystray();
