@@ -140,7 +140,7 @@ struct Client {
   int bw, oldbw;
   unsigned int tags;
   int lockname, isframe, isfixed, iscentered, isfloating, isurgent, 
-      neverfocus, oldstate, isfullscreen, isterminal, noswallow;
+      neverfocus, oldstate, isfullscreen, isterminal, noswallow, lockicon;
   pid_t pid;
   Client *next;
   Client *snext;
@@ -417,9 +417,10 @@ applyrules(Client *c)
         strcpy(c->name, r->name);
         c->lockname = 1;
       }
-      if (r->icon)
+      if (r->icon)  {
         strcpy(c->icon, r->icon);
-      else {
+        c->lockicon = 1;
+      } else {
         c->icon[0] = c->name[0]; 
         c->icon[1] = '\0';
       }
@@ -749,7 +750,7 @@ clickbar(const Arg *arg)
       updatestatus();
     }
   }else{
-    titlemode = !titlemode;
+    //titlemode = !titlemode;
     drawbar(selmon);
   }
 }
@@ -3172,19 +3173,22 @@ updatesystray(void)
 void
 updatetitle(Client *c)
 {
+  if (!c->lockicon) {
+    c->icon[0] = c->name[0]; 
+    c->icon[1] = '\0';
+  }
   if (c->lockname) {
     if (!gettextprop(c->win, netatom[NetWMName], c->realname, sizeof c->realname))
       gettextprop(c->win, XA_WM_NAME, c->realname, sizeof c->realname);
     if (c->name[0] == '\0') /* hack to mark broken clients */
       strcpy(c->realname, broken);
   } else {
-    c->icon[0] = c->name[0]; 
-    c->icon[1] = '\0';
     if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
       gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
     if (c->name[0] == '\0') /* hack to mark broken clients */
       strcpy(c->name, broken);
   }
+  drawframe(c);
 }
 
 void
